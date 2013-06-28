@@ -89,9 +89,9 @@ namespace FuelSDK
                 {
 
                     if (refreshKey.Length > 0)
-                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""refreshKey"": """ + refreshKey + @"""}";
+                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""refreshToken"": """ + refreshKey + @""", ""scope"": ""cas:" + internalAuthToken + @""" , ""accessType"": ""offline""}";
                     else
-                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @"""}";
+                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""accessType"": ""offline""}";
                     streamWriter.Write(json);
                 }
 
@@ -109,8 +109,60 @@ namespace FuelSDK
                 internalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
                 authToken = parsedResponse["accessToken"].Value<string>().Trim();
                 authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
+                refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
             }
         }
+
+        public FuelReturn AddSubscribersToList(string EmailAddress, string SubscriberKey, List<int> ListIDs)
+        {
+            return this.ProcessAddSubscriberToList(EmailAddress, SubscriberKey, ListIDs);
+        }
+
+        public FuelReturn AddSubscribersToList(string EmailAddress, List<int> ListIDs)
+        {
+            return this.ProcessAddSubscriberToList(EmailAddress, null, ListIDs);
+        }
+
+        protected FuelReturn ProcessAddSubscriberToList(string EmailAddress, string SubscriberKey, List<int> ListIDs)
+        {
+            ET_Subscriber sub = new ET_Subscriber();
+            sub.EmailAddress = EmailAddress;
+            if (SubscriberKey != null)
+                sub.SubscriberKey = SubscriberKey;
+            List<ET_SubscriberList> lLists = new List<ET_SubscriberList>();
+            foreach (int listID in ListIDs)
+            {
+                ET_SubscriberList feList = new ET_SubscriberList();
+                feList.ID = listID;
+                lLists.Add(feList);
+            }
+            sub.authStub = this;
+            sub.Lists = lLists.ToArray();
+            PostReturn prAddSub = sub.Post();
+            if (!prAddSub.Status && prAddSub.Results.Length > 0 && prAddSub.Results[0].ErrorCode == 12014)
+            {
+                return sub.Patch();
+            }
+            else
+            {
+                return prAddSub;
+            }
+        }
+
+        public FuelReturn CreateDataExtensions(ET_DataExtension[] ArrayOfET_DataExtension)
+        {
+
+            List<ET_DataExtension> cleanedArray = new List<ET_DataExtension>();
+
+            foreach (ET_DataExtension de in ArrayOfET_DataExtension)
+            {
+                de.Fields = de.Columns;
+                de.Columns = null;
+                cleanedArray.Add(de);
+            }
+            return new PostReturn(cleanedArray.ToArray(), this);
+        }
+
     }
 
     public class ResultDetail
@@ -127,6 +179,70 @@ namespace FuelSDK
     public class PostReturn : FuelReturn
     {
         public ResultDetail[] Results { get; set; }
+
+        public PostReturn(APIObject[] theObjects, ET_Client theClient)
+        {
+            this.Message = "";
+            this.Status = true;
+            this.MoreResults = false;
+            string OverallStatus = string.Empty, RequestID = string.Empty;
+            Result[] requestResults = new Result[0];
+
+            theClient.refreshToken();
+            using (var scope = new OperationContextScope(theClient.soapclient.InnerChannel))
+            {
+                //Add oAuth token to SOAP header.
+                XNamespace ns = "http://exacttarget.com";
+                var oauthElement = new XElement(ns + "oAuthToken", theClient.internalAuthToken);
+                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+
+                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
+                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theClient.SDKVersion);
+
+                List<APIObject> lObjects = new List<APIObject>();
+                foreach (APIObject ao in theObjects)
+                {
+                    lObjects.Add(this.TranslateObject(ao));
+                }
+
+
+                requestResults = theClient.soapclient.Create(new CreateOptions(), lObjects.ToArray(), out RequestID, out OverallStatus);
+
+                this.Status = true;
+                this.Code = 200;
+                this.MoreResults = false;
+                this.Message = "";
+
+                if (OverallStatus != "OK")
+                {
+                    this.Status = false;
+                }
+
+                if (requestResults.GetType() == typeof(CreateResult[]) && requestResults.Length > 0)
+                {
+                    List<ResultDetail> results = new List<ResultDetail>();
+                    foreach (CreateResult cr in requestResults)
+                    {
+                        ResultDetail detail = new ResultDetail();
+                        if (cr.StatusCode != null)
+                            detail.StatusCode = cr.StatusCode;
+                        if (cr.StatusMessage != null)
+                            detail.StatusMessage = cr.StatusMessage;
+                        if (cr.NewObjectID != null)
+                            detail.NewObjectID = cr.NewObjectID;
+                        if (cr.Object != null)
+                            detail.Object = this.TranslateObject(cr.Object);
+                        detail.OrdinalID = cr.OrdinalID;
+                        detail.ErrorCode = cr.ErrorCode;
+                        detail.NewID = cr.NewID;
+                        results.Add(detail);
+                    }
+                    this.Results = results.ToArray();
+                }
+            }
+        }
 
         public PostReturn(APIObject theObject)
         {
@@ -216,15 +332,18 @@ namespace FuelSDK
 
                     foreach (PropertyInfo prop in theObject.GetType().GetProperties())
                     {
-                        if (theObject.urlProps.Contains(prop.Name) && prop.GetValue(theObject, null) != null)
-                            if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                                match = true;
+                        if (theObject.urlProps.Contains(prop.Name))
+                            if (prop.GetValue(theObject, null) != null)
+                            {
+                                if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
+                                    match = true;
+                            }
                     }
                     if (match == false)
-                        throw new Exception("Unable to process request due to missing required prop: " + urlProp);
+                        throw new Exception("Unable to process request due to missing required property: " + urlProp);
 
-                    else
-                        throw new Exception("Unable to process request due to missing required prop: " + urlProp);
+                    //else
+                    //    throw new Exception("Unable to process request due to missing required property: " + urlProp);
                 }
             }
 
@@ -245,7 +364,7 @@ namespace FuelSDK
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
             request.Method = "POST";
             request.ContentType = "application/json";
-            request.UserAgent = "FuelSDX-C#-V1";
+            request.UserAgent = theObject.authStub.SDKVersion;
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
@@ -268,14 +387,36 @@ namespace FuelSDK
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
                         this.Status = true;
-                        JObject jsonObject = JObject.Parse(responseFromServer);
-                        if (theObject.GetType() == typeof(ET_Campaign))
+                        //JObject jsonObject = JObject.Parse(responseFromServer);
+                        //ResultDetail result = new ResultDetail();
+                        //result.Object = (APIObject)Activator.CreateInstance(theObject.GetType(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { jsonObject }, null);
+                        //this.Results = new ResultDetail[] { result };
+                        List<ResultDetail> AllResults = new List<ResultDetail>();
+
+                        if (responseFromServer.ToString().StartsWith("["))
                         {
-                            ResultDetail result = new ResultDetail();
-                            ET_Campaign tempCamp = new ET_Campaign(jsonObject);
-                            result.Object = tempCamp;
-                            this.Results = new ResultDetail[] { result };
+                            JArray jsonArray = JArray.Parse(responseFromServer.ToString());
+                            foreach (JObject obj in jsonArray)
+                            {
+                                APIObject currentObject = (APIObject)Activator.CreateInstance(theObject.GetType(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { obj }, null);
+                                ResultDetail result = new ResultDetail();
+                                result.Object = currentObject;
+                                AllResults.Add(result);
+                            }
+
+                            this.Results = AllResults.ToArray();
                         }
+                        else
+                        {
+                            JObject jsonObject = JObject.Parse(responseFromServer.ToString());
+                            ResultDetail result = new ResultDetail();
+                            APIObject currentObject = (APIObject)Activator.CreateInstance(theObject.GetType(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { jsonObject }, null);
+                            result.Object = currentObject;
+                            AllResults.Add(result);
+                            this.Results = AllResults.ToArray();
+                        }
+
+
                     }
                     else
                     {
@@ -306,6 +447,15 @@ namespace FuelSDK
     public class SendReturn : PostReturn
     {
         public SendReturn(APIObject theObject)
+            : base(theObject)
+        {
+
+        }
+    }
+
+    public class HelperReturn : PostReturn
+    {
+        public HelperReturn(APIObject theObject)
             : base(theObject)
         {
 
@@ -473,16 +623,16 @@ namespace FuelSDK
 
             additionalQS = "access_token=" + theObject.authStub.authToken;
             completeURL = completeURL + "?" + additionalQS;
-            restDelete(this, completeURL);
+            restDelete(theObject, completeURL);
         }
 
-        private void restDelete(DeleteReturn dr, string url)
+        private void restDelete(FuelObject theObject, string url)
         {
             //Build the request
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
             request.Method = "DELETE";
             request.ContentType = "application/json";
-            request.UserAgent = "FuelSDX-C#-V1";
+            request.UserAgent = theObject.authStub.SDKVersion;
 
             //Get the response
             try
@@ -644,23 +794,6 @@ namespace FuelSDK
             }
 
             ////props code for paging
-            //if (theObject.props != null)
-            //{
-            //    foreach (var prop in theObject.props)
-            //    {
-            //        if (prop.Value != null && prop.Value.ToString().Trim() != "")
-            //            if (!boolAdditionalQS)
-            //            {
-            //                additionalQS += prop.Key.Trim() + "=" + prop.Value.ToString().Trim();
-            //                boolAdditionalQS = true;
-            //            }
-            //            else
-            //            {
-            //                additionalQS += "&" + prop.Key.Trim() + "=" + prop.Value.ToString().Trim();
-            //            }
-            //    }
-            //}
-
             if (theObject.Page != 0)
             {
                 additionalQS += "$page=" + theObject.Page;
@@ -707,48 +840,7 @@ namespace FuelSDK
                 additionalQS += "&access_token=" + theObject.authStub.authToken;
 
             completeURL = completeURL + "?" + additionalQS;
-            //ET_GetRest get = new ET_GetRest(client, completeURL);
             restGet(ref theObject, completeURL);
-
-            //if (get.restResponse != null)
-            //{
-            //    JObject parsedResponse = JObject.Parse(get.restResponse);
-
-            //    //Check on the paging information from response?	
-            //    if (parsedResponse["page"] != null)
-            //    {
-            //        theObject.LastPageNumber = int.Parse(parsedResponse["page"].Value<string>().Trim());
-            //        int pageSize = int.Parse(parsedResponse["pageSize"].Value<string>().Trim());
-
-            //        int count = -1;
-            //        if (parsedResponse["count"] != null)
-            //        {
-            //            count = int.Parse(parsedResponse["count"].Value<string>().Trim());
-            //        }
-            //        else if (parsedResponse["totalCount"] != null)
-            //        {
-            //            count = int.Parse(parsedResponse["totalCount"].Value<string>().Trim());
-            //        }
-
-            //        if (count != -1 && (count > (lastPageNumber * pageSize)))
-            //        {
-            //            get.moreResults = true;
-            //        }
-            //    }
-
-            //    IList getResults;
-
-            //    if (parsedResponse["items"] != null)
-            //        getResults = processResults(parsedResponse["items"].ToString().Trim());
-            //    else if (parsedResponse["entities"] != null)
-            //        getResults = processResults(parsedResponse["entities"].ToString().Trim());
-            //    else
-            //        getResults = processResults(get.restResponse.Trim());
-
-            //    get.results = getResults;
-            //}
-
-            //return get;
         }
         public int LastPageNumber { get; set; }
 
@@ -758,7 +850,7 @@ namespace FuelSDK
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
             request.Method = "GET";
             request.ContentType = "application/json";
-            request.UserAgent = "FuelSDX-C#-V1";
+            request.UserAgent = theObject.authStub.SDKVersion;
 
             //Get the response
             try
@@ -845,17 +937,14 @@ namespace FuelSDK
                     if (restResponse.ToString().StartsWith("["))
                     {
                         JArray jsonArray = JArray.Parse(restResponse.ToString());
-                        if (fuelType.ToString() == "FuelSDK.ET_Campaign")
+                        foreach (JObject obj in jsonArray)
                         {
-
-                            foreach (JObject obj in jsonArray)
-                            {
-                                ET_Campaign loopCamp = new ET_Campaign(obj);
-                                allObjects.Add(loopCamp);
-                            }
-
-
+                            //ET_Campaign loopCamp = new ET_Campaign(obj);
+                            //allObjects.Add(loopCamp);
+                            APIObject currentObject = (APIObject)Activator.CreateInstance(fuelType, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { obj }, null);
+                            allObjects.Add(currentObject);
                         }
+
                         //else if (fuelType.ToString() == "ET_CampaignAsset")
                         //{
                         //    ET_CampaignAsset[] assets = new ET_CampaignAsset[jsonArray.Count];
@@ -874,19 +963,9 @@ namespace FuelSDK
                     else
                     {
                         JObject jsonObject = JObject.Parse(restResponse.ToString());
-                        if (fuelType.ToString() == "ET_Campaign")
-                        {
-                            ET_Campaign campaign = new ET_Campaign();
-                            campaign = new ET_Campaign(jsonObject);
-                            allObjects.Add(campaign);
-                        }
-                        //else if (restObj == "ET_CampaignAsset")
-                        //{
-                        //    ET_CampaignAsset[] assets = new ET_CampaignAsset[1];
-                        //    assets[0] = new ET_CampaignAsset(jsonObject);
-                        //    restResults = assets;
-                        //}
-
+                        ResultDetail result = new ResultDetail();
+                        APIObject currentObject = (APIObject)Activator.CreateInstance(fuelType, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { jsonObject }, null);
+                        allObjects.Add(currentObject);
                         return allObjects.ToArray();
                     }
                 }
@@ -1134,7 +1213,7 @@ namespace FuelSDK
 
     public class ET_Trigger : FuelSDK.TriggeredSend { }
 
-    public class ET_SubscriberList : FuelSDK.SubscriberList { }    
+    public class ET_SubscriberList : FuelSDK.SubscriberList { }
 
     public class ET_List : List
     {
@@ -1537,11 +1616,11 @@ namespace FuelSDK
         {
             ET_Trigger ts = new ET_Trigger();
             ts.CustomerKey = this.CustomerKey;
-            ts.TriggeredSendDefinition = this;      
+            ts.TriggeredSendDefinition = this;
             ts.Subscribers = this.Subscribers;
             ((ET_TriggeredSend)ts.TriggeredSendDefinition).Subscribers = null;
-            ts.authStub = this.authStub;         
-            
+            ts.authStub = this.authStub;
+
             return new FuelSDK.SendReturn(ts);
         }
 
@@ -1757,13 +1836,13 @@ namespace FuelSDK
             endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{ID}";
             urlProps = new string[] { "ID" };
             urlPropsRequired = new string[] { };
-            PropertyTranslation.Add("ID", "id");
-            PropertyTranslation.Add("CreatedDate", "createdDate");
-            PropertyTranslation.Add("ModifiedDate", "ModifiedDate");
-            PropertyTranslation.Add("Name", "name");
-            PropertyTranslation.Add("Description", "description");
-            PropertyTranslation.Add("Color", "color");
-            PropertyTranslation.Add("Favorite", "favorite");
+            //PropertyTranslation.Add("ID", "id");
+            //PropertyTranslation.Add("CreatedDate", "createdDate");
+            //PropertyTranslation.Add("ModifiedDate", "ModifiedDate");
+            //PropertyTranslation.Add("Name", "name");
+            //PropertyTranslation.Add("Description", "description");
+            //PropertyTranslation.Add("Color", "color");
+            //PropertyTranslation.Add("Favorite", "favorite");
 
         }
 
@@ -1812,4 +1891,66 @@ namespace FuelSDK
             return gr;
         }
     }
+
+
+    public class ET_CampaignAsset : FuelObject
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public string CampaignID { get; set; }
+        public string[] IDs { get; set; }
+
+        public ET_CampaignAsset()
+        {
+            endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{CampaignID}/assets/{ID}";
+            urlProps = new string[] { "CampaignID", "ID" };
+            urlPropsRequired = new string[] { "CampaignID" };
+            //PropertyTranslation.Add("ID", "id");
+            //PropertyTranslation.Add("CampaignID", "campaignId");
+            //PropertyTranslation.Add("Type", "Type");
+            //PropertyTranslation.Add("ObjectID", "objectID");
+            //PropertyTranslation.Add("CreatedDate", "createdDate");
+
+        }
+
+        public ET_CampaignAsset(JObject jObject)
+        {
+            if (jObject["id"] != null)
+                this.ID = int.Parse(cleanRestValue(jObject["id"].ToString().Replace("\"", "").Trim()));
+            if (jObject["createdDate"] != null)
+                this.CreatedDate = DateTime.Parse(cleanRestValue(jObject["createdDate"].ToString().Replace("\"", "").Trim()));
+            if (jObject["type"] != null)
+                this.Type = cleanRestValue(jObject["type"].ToString().Replace("\"", "").Trim());
+            if (jObject["campaignID"] != null)
+                this.CampaignID = cleanRestValue(jObject["campaignID"].ToString().Replace("\"", "").Trim());
+            if (jObject["objectID"] != null)
+                this.ObjectID = cleanRestValue(jObject["objectID"].ToString().Replace("\"", "").Trim());
+        }
+
+        public FuelSDK.PostReturn Post()
+        {
+            return new FuelSDK.PostReturn(this);
+        }
+
+        public FuelSDK.DeleteReturn Delete()
+        {
+            return new FuelSDK.DeleteReturn(this);
+        }
+
+        public FuelSDK.GetReturn Get()
+        {
+            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
+            this.Page = gr.LastPageNumber;
+            return gr;
+        }
+
+        public FuelSDK.GetReturn GetMoreResults()
+        {
+            this.Page = this.Page + 1;
+            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
+            this.Page = gr.LastPageNumber;
+            return gr;
+        }
+    }
+
 }

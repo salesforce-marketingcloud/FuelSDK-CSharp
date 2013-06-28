@@ -20,9 +20,9 @@ If you have not registered your application or you need to lookup your Applicati
 ## Example Request ##
 All ExactTarget services exposed through the Fuel SDK begin with be prefixed with "ET_". Start by working with the ET_List object:
 
-Add a using statement to reference the Fuel SDK's functionality:
+Add a using statement to reference the FuelSDK's functionality:
 
->using FuelSDKt;
+>using FuelSDK;
 
 Next, create an instance of the ET_Client class:
 
@@ -65,7 +65,7 @@ Print out the results for viewing
 The ET_Client class takes care of many of the required steps when accessing ExactTarget's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ETClient object for each request made.
 
 ## Responses ##
-All methods on FuelSDK objects return an object that follows the same structure, regardless of the type of call. This object contains a common set of properties used to display details about the request.
+All methods on Fuel SDK objects return an object that follows the same structure, regardless of the type of call. This object contains a common set of properties used to display details about the request.
 
 - Status: Boolean value that indicates if the call was successful
 - Code: HTTP Error Code 

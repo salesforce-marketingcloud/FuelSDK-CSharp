@@ -8,13 +8,14 @@ namespace objsamples
 {
     partial class Tester
     {
-        static void TestET_List(){
+        static void TestET_List()
+        {
             ET_Client myclient = new ET_Client();
 
             Console.WriteLine("--- Testing List ---");
-
             int MyNewListID = 0;
-            Console.WriteLine("\n Create List");            
+
+            Console.WriteLine("\n Create List");
             ET_List list = new ET_List();
             list.authStub = myclient;
             list.ListName = "C# SDK Rules!!";
@@ -33,7 +34,7 @@ namespace objsamples
             if (MyNewListID > 0)
             {
                 Console.WriteLine("\n Retrieve newly create list");
-                //list.props = new string[] { "ID", "ListName", "Description" };
+                list.props = new string[] { "ID", "ListName", "Description" };
                 list.SearchFilter = new SimpleFilterPart() { Property = "ID", SimpleOperator = SimpleOperators.equals, Value = new String[] { MyNewListID.ToString() } };
                 GetReturn getFR = list.Get();
                 Console.WriteLine("Get Status: " + getFR.Status.ToString());

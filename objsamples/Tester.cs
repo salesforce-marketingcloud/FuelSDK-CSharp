@@ -59,6 +59,14 @@ namespace objsamples
                     TestET_ListSubscriber();
                     break;
 
+                // Helper Methods
+                case "ADDSUBSCRIBERTOLIST":
+                    Test_AddSubscriberToList();
+                    break;
+                case "CREATEDATAEXTENSIONS":
+                    Test_CreateDataExtensions();
+                    break;
+
                 // Tracking Events
                 case "OPENEVENT":
                     TestET_OpenEvent();
