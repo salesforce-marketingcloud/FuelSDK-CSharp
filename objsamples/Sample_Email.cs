@@ -15,8 +15,8 @@ namespace objsamples
             Console.WriteLine("--- Testing Email ---");
             Console.WriteLine("\n Retrieve All Email with GetMoreResults");
             ET_Email getAllEmail = new ET_Email();
-            getAllEmail.authStub = myclient;
-            getAllEmail.props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
+            getAllEmail.AuthStub = myclient;
+            getAllEmail.Props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
             GetReturn grAllEmail = getAllEmail.Get();
 
             Console.WriteLine("Get Status: " + grAllEmail.Status.ToString());
@@ -36,7 +36,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create Email");            
             ET_Email postEmail = new ET_Email();
-            postEmail.authStub = myclient;
+            postEmail.AuthStub = myclient;
             postEmail.Name = NameOfTestEmail;
             postEmail.CustomerKey = NameOfTestEmail;
             postEmail.Subject = "Created Using the RubySDK";
@@ -51,8 +51,8 @@ namespace objsamples
             {
                 Console.WriteLine("\n Retrieve newly create Email");
                 ET_Email getEmail = new ET_Email();
-                getEmail.authStub = myclient;
-                getEmail.props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","HTMLBody","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
+                getEmail.AuthStub = myclient;
+                getEmail.Props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","HTMLBody","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
                 getEmail.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new String[] { NameOfTestEmail } };
                 GetReturn getResponse = getEmail.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());
@@ -68,7 +68,7 @@ namespace objsamples
                 ET_Email patchEmail = new ET_Email();
                 patchEmail.CustomerKey = NameOfTestEmail;
                 patchEmail.HTMLBody = "<b>Some HTML Goes here. NOW WITH NEW CONTENT</b>";
-                patchEmail.authStub = myclient;
+                patchEmail.AuthStub = myclient;
                 FuelSDK.PatchReturn patchFR = patchEmail.Patch();
                 Console.WriteLine("Patch Status: " + patchFR.Status.ToString());
                 Console.WriteLine("Message: " + patchFR.Message.ToString());
@@ -76,7 +76,7 @@ namespace objsamples
                 Console.WriteLine("Results Length: " + patchFR.Results.Length);
 
                 Console.WriteLine("\n Retrieve updated Email");
-                getEmail.props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","HTMLBody","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
+                getEmail.Props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","HTMLBody","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
                 getEmail.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new String[] { NameOfTestEmail } };
                 getResponse = getEmail.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());
@@ -91,7 +91,7 @@ namespace objsamples
                 Console.WriteLine("\n Delete Email");
                 ET_Email delEmail = new ET_Email();
                 delEmail.CustomerKey = NameOfTestEmail;
-                delEmail.authStub = myclient;
+                delEmail.AuthStub = myclient;
                 DeleteReturn deleteResponse = delEmail.Delete();
                 Console.WriteLine("Delete Status: " + deleteResponse.Status.ToString());
                 Console.WriteLine("Message: " + deleteResponse.Message.ToString());
@@ -99,7 +99,7 @@ namespace objsamples
                 Console.WriteLine("Results Length: " + deleteResponse.Results.Length);
 
                 Console.WriteLine("\n Retrieve Email to confirm deletion");
-                getEmail.props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","HTMLBody","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
+                getEmail.Props = new string[] { "ID","PartnerKey","CreatedDate","ModifiedDate","Client.ID","Name","Folder","CategoryID","HTMLBody","TextBody","Subject","IsActive","IsHTMLPaste","ClonedFromID","Status","EmailType","CharacterSet","HasDynamicSubjectLine","ContentCheckStatus","Client.PartnerClientKey","ContentAreas","CustomerKey" };
                 getEmail.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new String[] { NameOfTestEmail } };
                 getResponse = getEmail.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());
@@ -109,7 +109,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Info Email");
                 ET_Email EmailInfo = new ET_Email();
-                EmailInfo.authStub = myclient;
+                EmailInfo.AuthStub = myclient;
                 InfoReturn info = EmailInfo.Info();
                 Console.WriteLine("Info Status: " + info.Status.ToString());
                 Console.WriteLine("Message: " + info.Message.ToString());

@@ -15,8 +15,8 @@ namespace objsamples
             Console.WriteLine("--- Testing ContentArea ---");
             Console.WriteLine("\n Retrieve All ContentArea with GetMoreResults");
             ET_ContentArea getAllContentArea = new ET_ContentArea();
-            getAllContentArea.authStub = myclient;
-            getAllContentArea.props = new string[] { "RowObjectID", "ObjectID", "ID", "CustomerKey", "Client.ID", "ModifiedDate", "CreatedDate", "CategoryID", "Name", "Layout", "IsDynamicContent", "Content", "IsSurvey", "IsBlank", "Key" };
+            getAllContentArea.AuthStub = myclient;
+            getAllContentArea.Props = new string[] { "RowObjectID", "ObjectID", "ID", "CustomerKey", "Client.ID", "ModifiedDate", "CreatedDate", "CategoryID", "Name", "Layout", "IsDynamicContent", "Content", "IsSurvey", "IsBlank", "Key" };
             GetReturn grAllContent = getAllContentArea.Get();
 
             Console.WriteLine("Get Status: " + grAllContent.Status.ToString());
@@ -36,7 +36,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create ContentArea");            
             ET_ContentArea postContentArea = new ET_ContentArea();
-            postContentArea.authStub = myclient;
+            postContentArea.AuthStub = myclient;
             postContentArea.Name = NameOfTestContentArea;
             postContentArea.CustomerKey = NameOfTestContentArea;
             postContentArea.Content = "<b>Some HTML Content Goes here</b>";
@@ -50,8 +50,8 @@ namespace objsamples
             {
                 Console.WriteLine("\n Retrieve newly create ContentArea");
                 ET_ContentArea getContentArea = new ET_ContentArea();
-                getContentArea.authStub = myclient;
-                getContentArea.props = new string[] { "RowObjectID","ObjectID","ID","CustomerKey","Client.ID","ModifiedDate","CreatedDate","CategoryID","Name","Layout","IsDynamicContent","Content","IsSurvey","IsBlank","Key" };
+                getContentArea.AuthStub = myclient;
+                getContentArea.Props = new string[] { "RowObjectID","ObjectID","ID","CustomerKey","Client.ID","ModifiedDate","CreatedDate","CategoryID","Name","Layout","IsDynamicContent","Content","IsSurvey","IsBlank","Key" };
                 getContentArea.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new String[] { NameOfTestContentArea } };
                 GetReturn getResponse = getContentArea.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());
@@ -67,7 +67,7 @@ namespace objsamples
                 ET_ContentArea patchContentArea = new ET_ContentArea();
                 patchContentArea.CustomerKey = NameOfTestContentArea;
                 patchContentArea.Content = "<b>Some HTML Content Goes here. NOW WITH NEW CONTENT</b>";
-                patchContentArea.authStub = myclient;
+                patchContentArea.AuthStub = myclient;
                 FuelSDK.PatchReturn patchFR = patchContentArea.Patch();
                 Console.WriteLine("Patch Status: " + patchFR.Status.ToString());
                 Console.WriteLine("Message: " + patchFR.Message.ToString());
@@ -75,7 +75,7 @@ namespace objsamples
                 Console.WriteLine("Results Length: " + patchFR.Results.Length);
 
                 Console.WriteLine("\n Retrieve updated ContentArea");
-                getContentArea.props = new string[] { "RowObjectID","ObjectID","ID","CustomerKey","Client.ID","ModifiedDate","CreatedDate","CategoryID","Name","Layout","IsDynamicContent","Content","IsSurvey","IsBlank","Key" };
+                getContentArea.Props = new string[] { "RowObjectID","ObjectID","ID","CustomerKey","Client.ID","ModifiedDate","CreatedDate","CategoryID","Name","Layout","IsDynamicContent","Content","IsSurvey","IsBlank","Key" };
                 getContentArea.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new String[] { NameOfTestContentArea } };
                 getResponse = getContentArea.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());
@@ -90,7 +90,7 @@ namespace objsamples
                 Console.WriteLine("\n Delete ContentArea");
                 ET_ContentArea delContentArea = new ET_ContentArea();
                 delContentArea.CustomerKey = NameOfTestContentArea;
-                delContentArea.authStub = myclient;
+                delContentArea.AuthStub = myclient;
                 DeleteReturn deleteResponse = delContentArea.Delete();
                 Console.WriteLine("Delete Status: " + deleteResponse.Status.ToString());
                 Console.WriteLine("Message: " + deleteResponse.Message.ToString());
@@ -98,7 +98,7 @@ namespace objsamples
                 Console.WriteLine("Results Length: " + deleteResponse.Results.Length);
 
                 Console.WriteLine("\n Retrieve ContentArea to confirm deletion");
-                getContentArea.props = new string[] { "RowObjectID","ObjectID","ID","CustomerKey","Client.ID","ModifiedDate","CreatedDate","CategoryID","Name","Layout","IsDynamicContent","Content","IsSurvey","IsBlank","Key" };
+                getContentArea.Props = new string[] { "RowObjectID","ObjectID","ID","CustomerKey","Client.ID","ModifiedDate","CreatedDate","CategoryID","Name","Layout","IsDynamicContent","Content","IsSurvey","IsBlank","Key" };
                 getContentArea.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new String[] { NameOfTestContentArea } };
                 getResponse = getContentArea.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());

@@ -20,7 +20,7 @@ namespace objsamples
 
             Console.WriteLine("\n Retrieve All Campaigns");
             ET_Campaign getCampaign = new ET_Campaign();
-            getCampaign.authStub = myclient;            
+            getCampaign.AuthStub = myclient;            
             GetReturn grCampaign = getCampaign.Get();
 
             Console.WriteLine("Get Status: " + grCampaign.Status.ToString());
@@ -52,7 +52,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create Campaign");
             ET_Campaign camp = new ET_Campaign();
-            camp.authStub = myclient;
+            camp.AuthStub = myclient;
             camp.Name = "CSharpSDKCreatedForTEST";
             camp.Description = "CSharpSDKCreatedForTEST";
 
@@ -70,7 +70,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve the new Campaign");
                 ET_Campaign singleCampaign = new ET_Campaign();
-                singleCampaign.authStub = myclient;
+                singleCampaign.AuthStub = myclient;
                 singleCampaign.ID = campaign.ID;
                 GetReturn grSingleCamp = singleCampaign.Get();
 
@@ -81,7 +81,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Create a new Campaign Asset");
                 ET_CampaignAsset postCampAsset = new ET_CampaignAsset();
-                postCampAsset.authStub = myclient;
+                postCampAsset.AuthStub = myclient;
                 postCampAsset.CampaignID = IDOfpostCampaign;
                 postCampAsset.Type = ExampleAssetType;
                 postCampAsset.IDs = new string[] { ExampleAssetItemID };
@@ -97,7 +97,7 @@ namespace objsamples
 
                     Console.WriteLine("\n Retrieve a single new Campaign Asset");
                     ET_CampaignAsset singleCampAsset = new ET_CampaignAsset();
-                    singleCampAsset.authStub = myclient;
+                    singleCampAsset.AuthStub = myclient;
                     singleCampAsset.ID = Convert.ToInt16(IDOfpostCampaignAsset);
                     singleCampAsset.CampaignID =  IDOfpostCampaign;
                     GetReturn grSingleCampAsset = singleCampAsset.Get();
@@ -109,7 +109,7 @@ namespace objsamples
 
                     Console.WriteLine("\n Delete the new Campaign Asset");
                     ET_CampaignAsset deleteCampAsset = new ET_CampaignAsset();
-                    deleteCampAsset.authStub = myclient;
+                    deleteCampAsset.AuthStub = myclient;
                     deleteCampAsset.ID = Convert.ToInt16(IDOfpostCampaignAsset);
                     deleteCampAsset.CampaignID = IDOfpostCampaign;
                     DeleteReturn drSingleCampAsset = deleteCampAsset.Delete();
@@ -122,7 +122,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Delete Campaign");
                 ET_Campaign delCampaign = new ET_Campaign();
-                delCampaign.authStub = myclient;
+                delCampaign.AuthStub = myclient;
                 delCampaign.ID = campaign.ID;
                 DeleteReturn drCampaign = delCampaign.Delete();
                 Console.WriteLine("Delete Status: " + drCampaign.Status.ToString());

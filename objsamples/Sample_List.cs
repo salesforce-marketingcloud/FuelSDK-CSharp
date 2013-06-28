@@ -17,7 +17,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create List");
             ET_List list = new ET_List();
-            list.authStub = myclient;
+            list.AuthStub = myclient;
             list.ListName = "C# SDK Rules!!";
             list.Description = "This is my SDK Created List";
             PostReturn postFR = list.Post();
@@ -34,7 +34,7 @@ namespace objsamples
             if (MyNewListID > 0)
             {
                 Console.WriteLine("\n Retrieve newly create list");
-                list.props = new string[] { "ID", "ListName", "Description" };
+                list.Props = new string[] { "ID", "ListName", "Description" };
                 list.SearchFilter = new SimpleFilterPart() { Property = "ID", SimpleOperator = SimpleOperators.equals, Value = new String[] { MyNewListID.ToString() } };
                 GetReturn getFR = list.Get();
                 Console.WriteLine("Get Status: " + getFR.Status.ToString());
@@ -50,7 +50,7 @@ namespace objsamples
                 ET_List patchList = new ET_List();
                 patchList.ID = MyNewListID;
                 patchList.Description = "This is the new description";
-                patchList.authStub = myclient;
+                patchList.AuthStub = myclient;
                 FuelSDK.PatchReturn patchFR = patchList.Patch();
                 Console.WriteLine("Patch Status: " + patchFR.Status.ToString());
                 Console.WriteLine("Message: " + patchFR.Message.ToString());
@@ -58,7 +58,7 @@ namespace objsamples
                 Console.WriteLine("Results Length: " + patchFR.Results.Length);
 
                 Console.WriteLine("\n Retrieve List that should have description updated");
-                list.props = new string[] { "ID", "ListName", "Description" };
+                list.Props = new string[] { "ID", "ListName", "Description" };
                 list.SearchFilter = new SimpleFilterPart() { Property = "ID", SimpleOperator = SimpleOperators.equals, Value = new String[] { MyNewListID.ToString() } };
                 getFR = list.Get();
                 Console.WriteLine("Get Status: " + getFR.Status.ToString());
@@ -73,7 +73,7 @@ namespace objsamples
                 Console.WriteLine("\n Delete List");
                 ET_List delList = new ET_List();
                 delList.ID = MyNewListID;
-                delList.authStub = myclient;
+                delList.AuthStub = myclient;
                 FuelSDK.DeleteReturn fr = delList.Delete();
                 Console.WriteLine("Delete Status: " + fr.Status.ToString());
                 Console.WriteLine("Message: " + fr.Message.ToString());
@@ -81,7 +81,7 @@ namespace objsamples
                 Console.WriteLine("Results Length: " + fr.Results.Length);
 
                 Console.WriteLine("\n Retrieve List to confirm deletion");
-                list.props = new string[] { "ID", "ListName", "Description" };
+                list.Props = new string[] { "ID", "ListName", "Description" };
                 list.SearchFilter = new SimpleFilterPart() { Property = "ID", SimpleOperator = SimpleOperators.equals, Value = new String[] { MyNewListID.ToString() } };
                 getFR = list.Get();
                 Console.WriteLine("Get Status: " + getFR.Status.ToString());
@@ -95,7 +95,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Info List");
                 ET_List listInfo = new ET_List();
-                listInfo.authStub = myclient;
+                listInfo.AuthStub = myclient;
                 InfoReturn info = listInfo.Info();
                 Console.WriteLine("Info Status: " + info.Status.ToString());
                 Console.WriteLine("Message: " + info.Message.ToString());

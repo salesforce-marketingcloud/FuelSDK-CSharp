@@ -37,7 +37,7 @@ namespace objsamples
                 Console.WriteLine("\n Delete DEOne");
                 ET_DataExtension delDataExtension = new ET_DataExtension();
                 delDataExtension.CustomerKey = "HelperDEOne"; ;
-                delDataExtension.authStub = myclient;
+                delDataExtension.AuthStub = myclient;
                 DeleteReturn deleteResponse = delDataExtension.Delete();
                 Console.WriteLine("Delete Status: " + deleteResponse.Status.ToString());
                 Console.WriteLine("Message: " + deleteResponse.Message.ToString());
@@ -47,7 +47,7 @@ namespace objsamples
                 Console.WriteLine("\n Delete DETwo");
                 ET_DataExtension delDataExtension2 = new ET_DataExtension();
                 delDataExtension2.CustomerKey = "HelperDETwo"; ;
-                delDataExtension2.authStub = myclient;
+                delDataExtension2.AuthStub = myclient;
                 DeleteReturn deleteResponse2 = delDataExtension2.Delete();
                 Console.WriteLine("Delete Status: " + deleteResponse2.Status.ToString());
                 Console.WriteLine("Message: " + deleteResponse2.Message.ToString());

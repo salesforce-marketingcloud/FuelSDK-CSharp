@@ -17,7 +17,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create Subscriber");
             ET_Subscriber postSub = new ET_Subscriber();
-            postSub.authStub = myclient;
+            postSub.AuthStub = myclient;
             postSub.EmailAddress = SubscriberTestEmail;
             postSub.Attributes = new FuelSDK.ET_ProfileAttribute[] {new ET_ProfileAttribute(){ Name= "First Name", Value = "ExactTarget Example"} };
             PostReturn postResponse = postSub.Post();
@@ -37,8 +37,8 @@ namespace objsamples
 
             Console.WriteLine("\n Retrieve newly created Subscriber");
             ET_Subscriber getSub = new ET_Subscriber();
-            getSub.authStub = myclient;
-            getSub.props = new string[] { "SubscriberKey", "EmailAddress", "Status" };
+            getSub.AuthStub = myclient;
+            getSub.Props = new string[] { "SubscriberKey", "EmailAddress", "Status" };
             getSub.SearchFilter = new SimpleFilterPart() { Property = "SubscriberKey", SimpleOperator = SimpleOperators.equals, Value = new string[] { SubscriberTestEmail } };
             GetReturn getResponse = getSub.Get();
             Console.WriteLine("Get Status: " + getResponse.Status.ToString());
@@ -53,7 +53,7 @@ namespace objsamples
 
             Console.WriteLine("\n Update Subscriber");
             ET_Subscriber patchSub = new ET_Subscriber();
-            patchSub.authStub = myclient;
+            patchSub.AuthStub = myclient;
             patchSub.EmailAddress = SubscriberTestEmail;
             patchSub.Status = SubscriberStatus.Unsubscribed;
             patchSub.Attributes = new FuelSDK.ET_ProfileAttribute[] { new ET_ProfileAttribute() { Name = "First Name", Value = "ExactTarget Example" } };
@@ -82,7 +82,7 @@ namespace objsamples
 
             Console.WriteLine("\n Delete Subscriber");
             ET_Subscriber deleteSub = new ET_Subscriber();
-            deleteSub.authStub = myclient;
+            deleteSub.AuthStub = myclient;
             deleteSub.EmailAddress = SubscriberTestEmail;
             DeleteReturn deleteResponse = deleteSub.Delete();
             Console.WriteLine("Delete Status: " + deleteResponse.Status.ToString());

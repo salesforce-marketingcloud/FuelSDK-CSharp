@@ -20,8 +20,8 @@ namespace objsamples
 
             Console.WriteLine("\n Retrieve All Folder with GetMoreResults");
             ET_Folder getAllFolder = new ET_Folder();
-            getAllFolder.authStub = myclient;
-            getAllFolder.props = new string[] { "ID", "Client.ID", "ParentFolder.ID", "ParentFolder.CustomerKey", "ParentFolder.ObjectID", "ParentFolder.Name", "ParentFolder.Description", "ParentFolder.ContentType", "ParentFolder.IsActive", "ParentFolder.IsEditable", "ParentFolder.AllowChildren", "Name", "Description", "ContentType", "IsActive", "IsEditable", "AllowChildren", "CreatedDate", "ModifiedDate", "Client.ModifiedBy", "ObjectID", "CustomerKey", "Client.EnterpriseID", "Client.CreatedBy" };
+            getAllFolder.AuthStub = myclient;
+            getAllFolder.Props = new string[] { "ID", "Client.ID", "ParentFolder.ID", "ParentFolder.CustomerKey", "ParentFolder.ObjectID", "ParentFolder.Name", "ParentFolder.Description", "ParentFolder.ContentType", "ParentFolder.IsActive", "ParentFolder.IsEditable", "ParentFolder.AllowChildren", "Name", "Description", "ContentType", "IsActive", "IsEditable", "AllowChildren", "CreatedDate", "ModifiedDate", "Client.ModifiedBy", "ObjectID", "CustomerKey", "Client.EnterpriseID", "Client.CreatedBy" };
             GetReturn grAllFolder = getAllFolder.Get();
 
             Console.WriteLine("Get Status: " + grAllFolder.Status.ToString());
@@ -42,11 +42,11 @@ namespace objsamples
 
             Console.WriteLine("\n Retrieve Specific Folder for Email Folder ParentID");
             ET_Folder getFolder = new ET_Folder();
-            getFolder.authStub = myclient;
+            getFolder.AuthStub = myclient;
             SimpleFilterPart ParentFolderFilter = new SimpleFilterPart() { Property = "ParentFolder.ID", SimpleOperator = SimpleOperators.equals, Value = new string[] { "0" } };
             SimpleFilterPart ContentTypeFilter = new SimpleFilterPart() { Property = "ContentType", SimpleOperator = SimpleOperators.equals, Value = new string[] { "Email" } };
             getFolder.SearchFilter = new ComplexFilterPart() { LeftOperand = ParentFolderFilter, RightOperand = ContentTypeFilter, LogicalOperator = LogicalOperators.AND };
-            getFolder.props = new string[] { "ID", "Name", "Description" };
+            getFolder.Props = new string[] { "ID", "Name", "Description" };
             GetReturn grFolder = getFolder.Get();
 
             Console.WriteLine("Get Status: " + grFolder.Status.ToString());
@@ -67,7 +67,7 @@ namespace objsamples
                 fold.Name = NewFolderName;
                 fold.Description = NewFolderName;
                 fold.CustomerKey = NewFolderName;
-                fold.authStub = myclient;
+                fold.AuthStub = myclient;
                 fold.ParentFolder = new ET_Folder();
                 fold.ParentFolder.ID = ParentIDForEmail;
                 fold.ContentType = ContentType;
@@ -87,9 +87,9 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve newly created Folder");
                 ET_Folder getNewFolder = new ET_Folder();
-                getNewFolder.authStub = myclient;
+                getNewFolder.AuthStub = myclient;
                 getNewFolder.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new string[] { NewFolderName } };
-                getNewFolder.props = new string[] { "ID", "Name", "Description" };
+                getNewFolder.Props = new string[] { "ID", "Name", "Description" };
                 GetReturn grNewFolder = getNewFolder.Get();
 
                 Console.WriteLine("Get Status: " + grNewFolder.Status.ToString());
@@ -104,7 +104,7 @@ namespace objsamples
 
                 Console.WriteLine("\n UpdateFolder");
                 ET_Folder patchFolder = new ET_Folder();
-                patchFolder.authStub = myclient;
+                patchFolder.AuthStub = myclient;
                 patchFolder.CustomerKey = NewFolderName;
                 patchFolder.Description = "Now with a new Description";
                 PatchReturn patchResponse = patchFolder.Patch();
@@ -132,7 +132,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Delete Folder");
                 ET_Folder delFolder = new ET_Folder();
-                delFolder.authStub = myclient;
+                delFolder.AuthStub = myclient;
                 delFolder.CustomerKey = NewFolderName;
                 FuelSDK.DeleteReturn drFolder = delFolder.Delete();
                 Console.WriteLine("Delete Status: " + drFolder.Status.ToString());

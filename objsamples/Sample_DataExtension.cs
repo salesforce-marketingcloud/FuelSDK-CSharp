@@ -17,8 +17,8 @@ namespace objsamples
             Console.WriteLine("--- Testing DataExtension ---");
             Console.WriteLine("\n Get all of the DataExtensions in an Account");
             ET_DataExtension getAllDataExtension = new ET_DataExtension();
-            getAllDataExtension.authStub = myclient;
-            getAllDataExtension.props = new string[] { "CustomerKey", "Name" };
+            getAllDataExtension.AuthStub = myclient;
+            getAllDataExtension.Props = new string[] { "CustomerKey", "Name" };
             GetReturn grAllDataExtension = getAllDataExtension.Get();
 
             Console.WriteLine("Get Status: " + grAllDataExtension.Status.ToString());
@@ -40,7 +40,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create DataExtension");
             ET_DataExtension postDataExtension = new ET_DataExtension();
-            postDataExtension.authStub = myclient;
+            postDataExtension.AuthStub = myclient;
             postDataExtension.Name = NameOfTestDataExtension;
             postDataExtension.CustomerKey = NameOfTestDataExtension;
             ET_DataExtensionColumn nameColumn = new ET_DataExtensionColumn() { Name = "Name", FieldType = DataExtensionFieldType.Text, IsPrimaryKey = true, MaxLength = 100, IsRequired = true };
@@ -56,7 +56,7 @@ namespace objsamples
             {
                 Console.WriteLine("\n Update DE to add new field");
                 ET_DataExtension patchDataExtension = new ET_DataExtension();
-                patchDataExtension.authStub = myclient;
+                patchDataExtension.AuthStub = myclient;
                 patchDataExtension.CustomerKey = NameOfTestDataExtension;
                 ET_DataExtensionColumn addedField = new ET_DataExtensionColumn() { Name = "AddedField", FieldType = DataExtensionFieldType.Text };
                 patchDataExtension.Columns = new ET_DataExtensionColumn[] { addedField };
@@ -68,8 +68,8 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve All Columns for a data extension");
                 ET_DataExtensionColumn getColumn = new ET_DataExtensionColumn();
-                getColumn.authStub = myclient;
-                getColumn.props = new string[] { "Name", "FieldType" };
+                getColumn.AuthStub = myclient;
+                getColumn.Props = new string[] { "Name", "FieldType" };
                 getColumn.SearchFilter = new SimpleFilterPart() { Property = "DataExtension.CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new string[] { NameOfTestDataExtension } };
                 GetReturn getColumnResponse = getColumn.Get();
                 Console.WriteLine("Get Status: " + getColumnResponse.Status.ToString());
@@ -87,7 +87,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Add a row to a data extension (using CustomerKey)");
                 ET_DataExtensionRow deRowPost = new ET_DataExtensionRow();
-                deRowPost.authStub = myclient;
+                deRowPost.AuthStub = myclient;
                 deRowPost.DataExtensionCustomerKey = NameOfTestDataExtension;
                 deRowPost.ColumnValues.Add("Name", "Example Name");
                 deRowPost.ColumnValues.Add("OtherColumn", "Different Example Text");
@@ -99,7 +99,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Add a row to a data extension (using Name)");
                 ET_DataExtensionRow deRowPost2 = new ET_DataExtensionRow();
-                deRowPost2.authStub = myclient;
+                deRowPost2.AuthStub = myclient;
                 deRowPost2.DataExtensionName = NameOfTestDataExtension;
                 deRowPost2.ColumnValues.Add("Name", "Example Name3");
                 deRowPost2.ColumnValues.Add("OtherColumn", "Different Example Text");
@@ -111,9 +111,9 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve All Rows from DataExtension");
                 ET_DataExtensionRow deRowGet = new ET_DataExtensionRow();
-                deRowGet.authStub = myclient;
+                deRowGet.AuthStub = myclient;
                 deRowGet.DataExtensionName = NameOfTestDataExtension;
-                deRowGet.props = new string[] { "Name", "OtherColumn" };
+                deRowGet.Props = new string[] { "Name", "OtherColumn" };
                 GetReturn grRow = deRowGet.Get();
                 Console.WriteLine("Post Status: " + grRow.Status.ToString());
                 Console.WriteLine("Message: " + grRow.Message.ToString());
@@ -130,7 +130,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Update a row in  a data extension");
                 ET_DataExtensionRow deRowPatch = new ET_DataExtensionRow();
-                deRowPatch.authStub = myclient;
+                deRowPatch.AuthStub = myclient;
                 deRowPatch.DataExtensionCustomerKey = NameOfTestDataExtension;
                 deRowPatch.ColumnValues.Add("Name", "Example Name");
                 deRowPatch.ColumnValues.Add("OtherColumn", "New Value for First Column");
@@ -142,9 +142,9 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve only updated row");
                 ET_DataExtensionRow deRowGetSingle = new ET_DataExtensionRow();
-                deRowGetSingle.authStub = myclient;
+                deRowGetSingle.AuthStub = myclient;
                 deRowGetSingle.DataExtensionName = NameOfTestDataExtension;
-                deRowGetSingle.props = new string[] { "Name", "OtherColumn" };
+                deRowGetSingle.Props = new string[] { "Name", "OtherColumn" };
                 deRowGetSingle.SearchFilter = new SimpleFilterPart() { Property = "Name", SimpleOperator = SimpleOperators.equals, Value = new string[] { "Example Name" } };
                 GetReturn grSingleRow = deRowGetSingle.Get();
                 Console.WriteLine("Post Status: " + grSingleRow.Status.ToString());
@@ -162,7 +162,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Delete a row from a data extension)");
                 ET_DataExtensionRow deRowDelete = new ET_DataExtensionRow();
-                deRowDelete.authStub = myclient;
+                deRowDelete.AuthStub = myclient;
                 deRowDelete.DataExtensionCustomerKey = NameOfTestDataExtension;
                 deRowDelete.ColumnValues.Add("Name", "Example Name");
                 DeleteReturn drRowResponse = deRowDelete.Delete();
@@ -175,7 +175,7 @@ namespace objsamples
                 Console.WriteLine("\n Delete DataExtension");
                 ET_DataExtension delDataExtension = new ET_DataExtension();
                 delDataExtension.CustomerKey = NameOfTestDataExtension;
-                delDataExtension.authStub = myclient;
+                delDataExtension.AuthStub = myclient;
                 DeleteReturn deleteResponse = delDataExtension.Delete();
                 Console.WriteLine("Delete Status: " + deleteResponse.Status.ToString());
                 Console.WriteLine("Message: " + deleteResponse.Message.ToString());
@@ -184,7 +184,7 @@ namespace objsamples
 
                 Console.WriteLine("\n Info DataExtension");
                 ET_DataExtension DataExtensionInfo = new ET_DataExtension();
-                DataExtensionInfo.authStub = myclient;
+                DataExtensionInfo.AuthStub = myclient;
                 InfoReturn info = DataExtensionInfo.Info();
                 Console.WriteLine("Info Status: " + info.Status.ToString());
                 Console.WriteLine("Message: " + info.Message.ToString());

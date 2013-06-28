@@ -19,7 +19,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create List");
             ET_List postList = new ET_List();
-            postList.authStub = myclient;
+            postList.AuthStub = myclient;
             postList.ListName = NewListName;
             PostReturn prList = postList.Post();
 
@@ -35,8 +35,8 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve all Subscribers on the List");
                 ET_List_Subscriber getListSub = new ET_List_Subscriber();
-                getListSub.authStub = myclient;
-                getListSub.props = new string[] { "ObjectID", "SubscriberKey", "CreatedDate", "Client.ID", "Client.PartnerClientKey", "ListID", "Status" };
+                getListSub.AuthStub = myclient;
+                getListSub.Props = new string[] { "ObjectID", "SubscriberKey", "CreatedDate", "Client.ID", "Client.PartnerClientKey", "ListID", "Status" };
                 getListSub.SearchFilter = new SimpleFilterPart() { Property = "ListID", SimpleOperator = SimpleOperators.equals, Value = new string[] { newListID.ToString() } };
                 GetReturn getResponse = getListSub.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());

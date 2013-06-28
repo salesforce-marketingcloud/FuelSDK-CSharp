@@ -18,9 +18,9 @@ namespace objsamples
 
             Console.WriteLine("Retrieve Filtered SentEvents with GetMoreResults");
             ET_SentEvent oe = new ET_SentEvent();
-            oe.authStub = myclient;
+            oe.AuthStub = myclient;
             oe.SearchFilter = new SimpleFilterPart() { Property = "EventDate", SimpleOperator = SimpleOperators.greaterThan, DateValue = new DateTime[] { filterDate } };
-            oe.props = new string[] { "SendID", "SubscriberKey", "EventDate", "Client.ID", "EventType", "BatchID", "TriggeredSendDefinitionObjectID", "PartnerKey" };
+            oe.Props = new string[] { "SendID", "SubscriberKey", "EventDate", "Client.ID", "EventType", "BatchID", "TriggeredSendDefinitionObjectID", "PartnerKey" };
             GetReturn oeGet = oe.Get();
 
             Console.WriteLine("Get Status: " + oeGet.Status.ToString());

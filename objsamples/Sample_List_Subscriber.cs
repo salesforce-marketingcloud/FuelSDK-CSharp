@@ -19,7 +19,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create List");
             ET_List postList = new ET_List();
-            postList.authStub = myclient;
+            postList.AuthStub = myclient;
             postList.ListName = NewListName;
             PostReturn prList = postList.Post();
 
@@ -30,7 +30,7 @@ namespace objsamples
                 Console.WriteLine("\n Create Subscriber on List");
                 ET_Subscriber postSub = new ET_Subscriber();
                 postSub.Lists = new ET_SubscriberList[] { new ET_SubscriberList() { ID = newListID } };
-                postSub.authStub = myclient;
+                postSub.AuthStub = myclient;
                 postSub.EmailAddress = SubscriberTestEmail;
                 postSub.Attributes = new FuelSDK.ET_ProfileAttribute[] { new ET_ProfileAttribute() { Name = "First Name", Value = "ExactTarget Example" } };
                 PostReturn postResponse = postSub.Post();
@@ -57,8 +57,8 @@ namespace objsamples
 
                 Console.WriteLine("\n Retrieve all Subscribers on the List");
                 ET_List_Subscriber getListSub = new ET_List_Subscriber();
-                getListSub.authStub = myclient;
-                getListSub.props = new string[] { "ObjectID", "SubscriberKey", "CreatedDate", "Client.ID", "Client.PartnerClientKey", "ListID", "Status" };
+                getListSub.AuthStub = myclient;
+                getListSub.Props = new string[] { "ObjectID", "SubscriberKey", "CreatedDate", "Client.ID", "Client.PartnerClientKey", "ListID", "Status" };
                 getListSub.SearchFilter = new SimpleFilterPart() { Property = "ListID", SimpleOperator = SimpleOperators.equals, Value = new string[] { newListID.ToString() } };
                 GetReturn getResponse = getListSub.Get();
                 Console.WriteLine("Get Status: " + getResponse.Status.ToString());

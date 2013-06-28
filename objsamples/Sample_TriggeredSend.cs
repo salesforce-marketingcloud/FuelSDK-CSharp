@@ -17,7 +17,7 @@ namespace objsamples
 
             Console.WriteLine("\n Send Using an Existing Definition ");
             ET_TriggeredSend tsdSend = new ET_TriggeredSend();
-            tsdSend.authStub = myclient;
+            tsdSend.AuthStub = myclient;
             tsdSend.CustomerKey = ExistingTSDCustomerKey;
             tsdSend.Subscribers = new ET_Subscriber[] { new ET_Subscriber() { EmailAddress = "example@bh.exacttarget.com", SubscriberKey = "example@bh.exacttarget.com" } };
             SendReturn srSend = tsdSend.Send();
@@ -28,8 +28,8 @@ namespace objsamples
 
             Console.WriteLine("\n Retrieve All TriggeredSend Definitions");
             ET_TriggeredSend tsdGetAll = new ET_TriggeredSend();
-            tsdGetAll.authStub = myclient;
-            tsdGetAll.props = new string[] { "CustomerKey", "Name", "TriggeredSendStatus" };
+            tsdGetAll.AuthStub = myclient;
+            tsdGetAll.Props = new string[] { "CustomerKey", "Name", "TriggeredSendStatus" };
             tsdGetAll.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new string[] { TSNameForCreateThenDelete } };
             GetReturn grAllTSD = tsdGetAll.Get();
             Console.WriteLine("Get Status: " + grAllTSD.Status.ToString());
@@ -44,7 +44,7 @@ namespace objsamples
 
             Console.WriteLine("\n Create a TriggeredSend Definition");
             ET_TriggeredSend tsd = new ET_TriggeredSend();
-            tsd.authStub = myclient;
+            tsd.AuthStub = myclient;
             tsd.Name = TSNameForCreateThenDelete;
             tsd.CustomerKey = TSNameForCreateThenDelete;
             tsd.Email = new ET_Email() { ID = 3113962 };
@@ -57,8 +57,8 @@ namespace objsamples
 
             Console.WriteLine("\n Retrieve Single TriggeredSend");
             ET_TriggeredSend tsdGet = new ET_TriggeredSend();
-            tsdGet.authStub = myclient;
-            tsdGet.props = new string[] { "CustomerKey", "Name", "TriggeredSendStatus" };
+            tsdGet.AuthStub = myclient;
+            tsdGet.Props = new string[] { "CustomerKey", "Name", "TriggeredSendStatus" };
             tsdGet.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new string[] { TSNameForCreateThenDelete } };
             GetReturn tsdGetSingle = tsdGet.Get();
             Console.WriteLine("Get Status: " + tsdGetSingle.Status.ToString());
@@ -73,7 +73,7 @@ namespace objsamples
 
             Console.WriteLine("\n Start a TriggeredSend by setting to Active");
             ET_TriggeredSend tsdPatch = new ET_TriggeredSend();
-            tsdPatch.authStub = myclient;
+            tsdPatch.AuthStub = myclient;
             tsdPatch.CustomerKey = TSNameForCreateThenDelete;
             tsdPatch.TriggeredSendStatus = TriggeredSendStatusEnum.Active;
             PatchReturn patchrTSD = tsdPatch.Patch();
@@ -96,7 +96,7 @@ namespace objsamples
 
             Console.WriteLine("\n  Send using new definition");
             ET_TriggeredSend tsdSendNew = new ET_TriggeredSend();
-            tsdSendNew.authStub = myclient;
+            tsdSendNew.AuthStub = myclient;
             tsdSendNew.CustomerKey = TSNameForCreateThenDelete;
             tsdSendNew.Subscribers = new ET_Subscriber[] { new ET_Subscriber() { EmailAddress = "example@bh.exacttarget.com", SubscriberKey = "example@bh.exacttarget.com" } };
             SendReturn srSendnew = tsdSendNew.Send();
@@ -115,7 +115,7 @@ namespace objsamples
 
             Console.WriteLine("\n Delete a TriggeredSend Definition");
             ET_TriggeredSend tsdDelete = new ET_TriggeredSend();
-            tsdDelete.authStub = myclient;
+            tsdDelete.AuthStub = myclient;
             tsdDelete.CustomerKey = TSNameForCreateThenDelete;
             DeleteReturn drTSD = tsdDelete.Delete();
             Console.WriteLine("Delete Status: " + drTSD.Status.ToString());
