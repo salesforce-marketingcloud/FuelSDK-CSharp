@@ -58,6 +58,9 @@ namespace objsamples
                 case "LISTSUBSCRIBER":
                     TestET_ListSubscriber();
                     break;
+                case "ENDPOINT":
+                    TestET_Endpoint();
+                    break;
 
                 // Helper Methods
                 case "ADDSUBSCRIBERTOLIST":

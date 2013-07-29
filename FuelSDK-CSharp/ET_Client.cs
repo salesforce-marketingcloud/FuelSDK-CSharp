@@ -41,16 +41,7 @@ namespace FuelSDK
                 clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
                 clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
                 soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
-            }
-
-            //Create the SOAP binding for call with Oauth.
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.Name = "UserNameSoapBinding";
-            binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
-            binding.MaxReceivedMessageSize = 2147483647;
-            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));
-            soapclient.ClientCredentials.UserName.UserName = "*";
-            soapclient.ClientCredentials.UserName.Password = "*";
+            }         
 
             //If JWT URL Parameter Used
             if (parameters != null && parameters.AllKeys.Contains("jwt"))
@@ -67,6 +58,28 @@ namespace FuelSDK
             {
                 refreshToken();
             }
+
+            // Find the appropriate endpoint for the acccount
+            ET_Endpoint getSingleEndpoint = new ET_Endpoint();
+            getSingleEndpoint.AuthStub = this;
+            getSingleEndpoint.Type = "soap";
+            GetReturn grSingleEndpoint = getSingleEndpoint.Get();
+
+            if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1){
+                soapEndPoint =  ((ET_Endpoint)grSingleEndpoint.Results[0]).URL;
+            } else {
+                throw new Exception("Unable to determine stack using /platform/v1/endpoints: " + grSingleEndpoint.Message);
+            }
+
+            //Create the SOAP binding for call with Oauth.
+            BasicHttpBinding binding = new BasicHttpBinding();
+            binding.Name = "UserNameSoapBinding";
+            binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
+            binding.MaxReceivedMessageSize = 2147483647;
+            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));
+            soapclient.ClientCredentials.UserName.UserName = "*";
+            soapclient.ClientCredentials.UserName.Password = "*";
+
         }
 
         public void refreshToken(bool force = false)
@@ -1891,6 +1904,43 @@ namespace FuelSDK
         public FuelSDK.DeleteReturn Delete()
         {
             return new FuelSDK.DeleteReturn(this);
+        }
+
+        public FuelSDK.GetReturn Get()
+        {
+            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
+            this.Page = gr.LastPageNumber;
+            return gr;
+        }
+
+        public FuelSDK.GetReturn GetMoreResults()
+        {
+            this.Page = this.Page + 1;
+            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
+            this.Page = gr.LastPageNumber;
+            return gr;
+        }
+    }
+
+    //
+    public class ET_Endpoint : FuelObject
+    {
+        public string Type { get; set; }
+        public string URL { get; set; }
+
+        public ET_Endpoint()
+        {
+            Endpoint = "https://www.exacttargetapis.com/platform/v1/endpoints/{Type}";
+            URLProperties = new string[] {"Type"};
+            RequiredURLProperties = new string[] {};
+        }
+
+        public ET_Endpoint(JObject jObject)
+        {
+            if (jObject["type"] != null)
+                this.Type = cleanRestValue(jObject["type"]).ToString().Trim();
+            if (jObject["url"] != null)
+                this.URL = cleanRestValue(jObject["url"]);
         }
 
         public FuelSDK.GetReturn Get()

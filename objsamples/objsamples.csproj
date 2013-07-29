@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Sample_Endpoints.cs" />
     <Compile Include="Sample_CreateDataExtensions.cs" />
     <Compile Include="Sample_AddSubscriberToList.cs" />
     <Compile Include="Sample_TriggeredSend.cs" />
