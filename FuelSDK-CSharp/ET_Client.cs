@@ -219,7 +219,6 @@ namespace FuelSDK
                     lObjects.Add(this.TranslateObject(ao));
                 }
 
-
                 requestResults = theClient.soapclient.Create(new CreateOptions(), lObjects.ToArray(), out RequestID, out OverallStatus);
 
                 this.Status = true;
