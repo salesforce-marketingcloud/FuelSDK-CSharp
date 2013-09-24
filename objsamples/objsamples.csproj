@@ -39,11 +39,12 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Sample_Import.cs" />
+    <Compile Include="Sample_EmailSendDefinition.cs" />
     <Compile Include="Sample_Endpoints.cs" />
     <Compile Include="Sample_CreateDataExtensions.cs" />
     <Compile Include="Sample_AddSubscriberToList.cs" />

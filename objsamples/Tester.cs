@@ -58,8 +58,14 @@ namespace objsamples
                 case "LISTSUBSCRIBER":
                     TestET_ListSubscriber();
                     break;
+                case "EMAILSENDDEFINITION":
+                    TestET_EmailSendDefinition();
+                    break;
                 case "ENDPOINT":
                     TestET_Endpoint();
+                    break;
+                case "IMPORT":
+                    TestET_Import();
                     break;
 
                 // Helper Methods

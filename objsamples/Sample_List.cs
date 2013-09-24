@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using FuelSDK;
@@ -20,6 +21,7 @@ namespace objsamples
             list.AuthStub = myclient;
             list.ListName = "C# SDK Rules!!";
             list.Description = "This is my SDK Created List";
+            //list.FolderID = 1083760;            
             PostReturn postFR = list.Post();
             Console.WriteLine("Post Status: " + postFR.Status.ToString());
             Console.WriteLine("Message: " + postFR.Message.ToString());

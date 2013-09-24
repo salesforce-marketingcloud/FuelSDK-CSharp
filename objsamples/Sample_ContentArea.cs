@@ -40,12 +40,14 @@ namespace objsamples
             postContentArea.Name = NameOfTestContentArea;
             postContentArea.CustomerKey = NameOfTestContentArea;
             postContentArea.Content = "<b>Some HTML Content Goes here</b>";
+            //postContentArea.FolderID = 1073161;
             PostReturn postResponse = postContentArea.Post();
             Console.WriteLine("Post Status: " + postResponse.Status.ToString());
             Console.WriteLine("Message: " + postResponse.Message.ToString());
             Console.WriteLine("Code: " + postResponse.Code.ToString());
             Console.WriteLine("Results Length: " + postResponse.Results.Length);
 
+            
             if (postResponse.Status)
             {
                 Console.WriteLine("\n Retrieve newly create ContentArea");
@@ -118,7 +120,7 @@ namespace objsamples
                 //{
                 //    Console.WriteLine("--Name: " + def.Name + ", IsRetrievable: " + def.IsRetrievable.ToString());
                 //}
-            }
+            }             
         }
     }
 }

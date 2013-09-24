@@ -40,7 +40,8 @@ namespace objsamples
             postEmail.Name = NameOfTestEmail;
             postEmail.CustomerKey = NameOfTestEmail;
             postEmail.Subject = "Created Using the Fuel SDK";
-            postEmail.HTMLBody =  "<b>Some HTML Goes here</b>";	
+            postEmail.HTMLBody =  "<b>Some HTML Goes here</b>";
+            //postEmail.FolderID = 898544;            
             PostReturn postResponse = postEmail.Post();
             Console.WriteLine("Post Status: " + postResponse.Status.ToString());
             Console.WriteLine("Message: " + postResponse.Message.ToString());
