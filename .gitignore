@@ -1,6 +1,11 @@
 # Build Folders (you can keep bin if you'd like, to store dlls and pdbs)
 [Bb]in/Debug/
 [Oo]bj/
+[Dd]ebug/
+[Dd]ebug.4/
+[Rr]elease/
+[Rr]elease.4/
+build/
 
 # mstest test results
 TestResults
