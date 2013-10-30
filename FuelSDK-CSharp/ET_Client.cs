@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -15,63 +16,117 @@ using System.Xml.XPath;
 
 namespace FuelSDK
 {
+    #region Configuration
+
+    public class FuelSDKConfigurationSection : ConfigurationSection
+    {
+        [ConfigurationProperty("appSignature", IsRequired = true)]
+        public string AppSignature
+        {
+            get { return (string)this["appSignature"]; }
+            set { this["appSignature"] = value; }
+        }
+
+        [ConfigurationProperty("clientId", IsRequired = true)]
+        public string ClientId
+        {
+            get { return (string)this["clientId"]; }
+            set { this["clientId"] = value; }
+        }
+
+        [ConfigurationProperty("clientSecret", IsRequired = true)]
+        public string ClientSecret
+        {
+            get { return (string)this["clientSecret"]; }
+            set { this["clientSecret"] = value; }
+        }
+
+        [ConfigurationProperty("soapEndPoint", DefaultValue = "https://webservice.s4.exacttarget.com/Service.asmx")]
+        public string SoapEndPoint
+        {
+            get { return (string)this["soapEndPoint"]; }
+            set { this["soapEndPoint"] = value; }
+        }
+
+        public object Clone() { return MemberwiseClone(); }
+    }
+
+    #endregion
+
     #region ET-Client
 
     public class ET_Client
     {
-        public string authToken;
-        public SoapClient soapclient;
-        private string appSignature = string.Empty;
-        private string clientId = string.Empty;
-        private string clientSecret = string.Empty;
-        private string soapEndPoint = string.Empty;
-        public string internalAuthToken = string.Empty;
-        private string refreshKey = string.Empty;
-        private DateTime authTokenExpiration = DateTime.Now;
-        public string SDKVersion = "FuelSDX-C#-V.8";
+        public const string SDKVersion = "FuelSDX-C#-V.8";
+        private FuelSDKConfigurationSection configSection;
+        public string AuthToken { get; private set; }
+        public SoapClient SoapClient { get; private set; }
+        public string InternalAuthToken { get; private set; }
+        public string RefreshKey { get; private set; }
+        public DateTime AuthTokenExpiration { get; private set; }
+        public JObject Jwt { get; private set; }
+        public string EnterpriseId { get; private set; }
+        public string OrganizationId { get; private set; }
+        public string Stack { get; private set; }
 
-        public ET_Client(NameValueCollection parameters = null)
+        public class RefreshState
+        {
+            public string RefreshKey { get; set; }
+            public string EnterpriseId { get; set; }
+            public string OrganizationId { get; set; }
+            public string Stack { get; set; }
+        }
+
+        public ET_Client(string jwt)
+            : this(new NameValueCollection { { "jwt", jwt } }, null) { }
+        public ET_Client(NameValueCollection parameters = null, RefreshState refreshState = null)
         {
             // Get configuration file and set variables
-            if (File.Exists(@"FuelSDK_config.xml"))
-            {
-                var doc = new System.Xml.XPath.XPathDocument(@"FuelSDK_config.xml");
-                foreach (XPathNavigator child in doc.CreateNavigator().Select("configuration"))
-                {
-                    appSignature = child.SelectSingleNode("appSignature").Value.ToString().Trim();
-                    clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
-                    clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
-                    soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
-                }
-            }
-
+            configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+            configSection = (configSection != null ? (FuelSDKConfigurationSection)configSection.Clone() : new FuelSDKConfigurationSection());
             if (parameters != null)
             {
                 if (parameters.AllKeys.Contains("appSignature"))
-                    appSignature = parameters["appSignature"];
+                    configSection.AppSignature = parameters["appSignature"];
                 if (parameters.AllKeys.Contains("clientId"))
-                    clientId = parameters["clientId"];
+                    configSection.ClientId = parameters["clientId"];
                 if (parameters.AllKeys.Contains("clientSecret"))
-                    clientSecret = parameters["clientSecret"];
+                    configSection.ClientSecret = parameters["clientSecret"];
                 if (parameters.AllKeys.Contains("soapEndPoint"))
-                    soapEndPoint = parameters["soapEndPoint"];
+                    configSection.SoapEndPoint = parameters["soapEndPoint"];
             }
 
-            if (clientId.Equals(string.Empty) || clientSecret.Equals(string.Empty))
+            if (configSection.ClientId.Equals(string.Empty) || configSection.ClientSecret.Equals(string.Empty))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ET_Client");
 
-            //If JWT URL Parameter Used
-            if (parameters != null && parameters.AllKeys.Contains("jwt"))
+            // If JWT URL Parameter Used
+            if (refreshState != null)
             {
-                if (appSignature.Equals(string.Empty))
+                RefreshKey = refreshState.RefreshKey;
+                EnterpriseId = refreshState.EnterpriseId;
+                OrganizationId = refreshState.OrganizationId;
+                Stack = refreshState.Stack;
+                RefreshToken();
+            }
+            else if (parameters != null && parameters.AllKeys.Contains("jwt"))
+            {
+                if (configSection.AppSignature.Equals(string.Empty))
                     throw new Exception("Unable to utilize JWT for SSO without appSignature: Must be provided in config file or passed when instantiating ET_Client");
                 var encodedJWT = parameters["jwt"].ToString().Trim();
-                var decodedJWT = JsonWebToken.Decode(encodedJWT, appSignature);
+                var decodedJWT = JsonWebToken.Decode(encodedJWT, configSection.AppSignature);
                 var parsedJWT = JObject.Parse(decodedJWT);
-                authToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
-                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
-                internalAuthToken = parsedJWT["request"]["user"]["internalOauthToken"].Value<string>().Trim();
-                refreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
+                AuthToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
+                AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
+                InternalAuthToken = parsedJWT["request"]["user"]["internalOauthToken"].Value<string>().Trim();
+                RefreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
+                Jwt = parsedJWT;
+                var orgPart = parsedJWT["request"]["organization"];
+                if (orgPart != null)
+                {
+                    EnterpriseId = orgPart["enterpriseId"].Value<string>().Trim();
+                    OrganizationId = orgPart["id"].Value<string>().Trim();
+                    Stack = orgPart["stackKey"].Value<string>().Trim();
+                }
             }
             else
                 RefreshToken();
@@ -79,7 +134,7 @@ namespace FuelSDK
             // Find the appropriate endpoint for the acccount
             var grSingleEndpoint = new ET_Endpoint { AuthStub = this, Type = "soap" }.Get();
             if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
-                soapEndPoint = ((ET_Endpoint)grSingleEndpoint.Results[0]).URL;
+                configSection.SoapEndPoint = ((ET_Endpoint)grSingleEndpoint.Results[0]).URL;
             else
                 throw new Exception("Unable to determine stack using /platform/v1/endpoints: " + grSingleEndpoint.Message);
 
@@ -90,15 +145,15 @@ namespace FuelSDK
                 MaxReceivedMessageSize = 2147483647,
             };
             binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
-            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));
-            soapclient.ClientCredentials.UserName.UserName = "*";
-            soapclient.ClientCredentials.UserName.Password = "*";
+            SoapClient = new SoapClient(binding, new EndpointAddress(new Uri(configSection.SoapEndPoint)));
+            SoapClient.ClientCredentials.UserName.UserName = "*";
+            SoapClient.ClientCredentials.UserName.Password = "*";
         }
 
         public void RefreshToken(bool force = false)
         {
             // RefreshToken
-            if (!string.IsNullOrEmpty(authToken) && DateTime.Now.AddSeconds(300) <= authTokenExpiration && !force)
+            if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
                 return;
 
             // Get an internalAuthToken using clientId and clientSecret
@@ -108,15 +163,15 @@ namespace FuelSDK
             var request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
             request.Method = "POST";
             request.ContentType = "application/json";
-            request.UserAgent = this.SDKVersion;
+            request.UserAgent = SDKVersion;
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
                 string json;
-                if (!string.IsNullOrEmpty(refreshKey))
-                    json = string.Format(@"{""clientId"": ""{0}"", ""clientSecret"": ""{1}"", ""refreshToken"": ""{2}"", ""scope"": ""cas:{3}"" , ""accessType"": ""offline""}", clientId, clientSecret, refreshKey, internalAuthToken);
+                if (!string.IsNullOrEmpty(RefreshKey))
+                    json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"refreshToken\": \"{2}\", \"scope\": \"cas:{3}\" , \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret, RefreshKey, InternalAuthToken);
                 else
-                    json = string.Format(@"{""clientId"": ""{0}"", ""clientSecret"": ""{1}"", ""accessType"": ""offline""}", clientId, clientSecret);
+                    json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret);
                 streamWriter.Write(json);
             }
 
@@ -129,10 +184,10 @@ namespace FuelSDK
 
             // Parse the response
             var parsedResponse = JObject.Parse(responseFromServer);
-            internalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
-            authToken = parsedResponse["accessToken"].Value<string>().Trim();
-            authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
-            refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
+            InternalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
+            AuthToken = parsedResponse["accessToken"].Value<string>().Trim();
+            AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
+            RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
         }
 
         public FuelReturn AddSubscribersToList(string emailAddress, string subscriberKey, IEnumerable<int> listIDs) { return ProcessAddSubscriberToList(emailAddress, subscriberKey, listIDs); }
@@ -173,15 +228,28 @@ namespace FuelSDK
 
     public partial class APIObject
     {
-        [XmlIgnore()]
-        [JsonIgnore]
+        [XmlIgnore, JsonIgnore]
         public ET_Client AuthStub { get; set; }
-        [XmlIgnore()]
+        [XmlIgnore]
         public string[] Props { get; set; }
-        [XmlIgnore()]
+        [XmlIgnore]
         public FilterPart SearchFilter { get; set; }
-        [XmlIgnore()]
-        public String LastRequestID { get; set; }
+        [XmlIgnore]
+        public string LastRequestID { get; set; }
+        [XmlElementAttribute(Order = 10000), JsonIgnore]
+        public string DirectoryPath { get; set; }
+
+        [XmlIgnore, JsonIgnore]
+        public string UniqueID
+        {
+            get
+            {
+                if (ID > 0) return ID.ToString();
+                if (!string.IsNullOrEmpty(ObjectID)) return ObjectID;
+                if (!string.IsNullOrEmpty(CustomerKey)) return CustomerKey;
+                throw new InvalidOperationException("Unable to generate UniqueID");
+            }
+        }
     }
 
     public class FuelObject : APIObject
@@ -262,6 +330,9 @@ namespace FuelSDK
 
             _translators.Add(typeof(ET_EmailSendDefinition), typeof(EmailSendDefinition));
             _translators.Add(typeof(EmailSendDefinition), typeof(ET_EmailSendDefinition));
+
+            _translators.Add(typeof(ET_QueryDefinition), typeof(QueryDefinition));
+            _translators.Add(typeof(QueryDefinition), typeof(ET_QueryDefinition));
 
             _translators.Add(typeof(ET_Send), typeof(Send));
             _translators.Add(typeof(Send), typeof(ET_Send));
@@ -388,17 +459,17 @@ namespace FuelSDK
             if (client == null)
                 throw new InvalidOperationException("client");
             client.RefreshToken();
-            using (var scope = new OperationContextScope(client.soapclient.InnerChannel))
+            using (var scope = new OperationContextScope(client.SoapClient.InnerChannel))
             {
                 // Add oAuth token to SOAP header.
                 XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", client.internalAuthToken);
+                var oauthElement = new XElement(ns + "oAuthToken", client.InternalAuthToken);
                 var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
                 OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
                 var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
                 OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, client.SDKVersion);
+                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ET_Client.SDKVersion);
 
                 var response = func(client, objs.Select(select).ToArray());
                 RequestID = response.RequestID;
@@ -440,14 +511,14 @@ namespace FuelSDK
                 foreach (string urlProp in obj.URLProperties)
                     completeURL = completeURL.Replace("{" + urlProp + "}", string.Empty);
 
-            completeURL += "?access_token=" + obj.AuthStub.authToken;
+            completeURL += "?access_token=" + obj.AuthStub.AuthToken;
             if (obj.Page != 0)
                 completeURL += "&page=" + obj.Page.ToString();
 
             var request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
             request.Method = method;
             request.ContentType = "application/json";
-            request.UserAgent = obj.AuthStub.SDKVersion;
+            request.UserAgent = ET_Client.SDKVersion;
 
             if (postValue)
                 using (var streamWriter = new StreamWriter(request.GetRequestStream()))
@@ -500,11 +571,11 @@ namespace FuelSDK
         {
             if (objs == null)
                 throw new ArgumentNullException("objs");
-            var response = ExecuteAPI((c, os) =>
+            var response = ExecuteAPI((client, o) =>
             {
                 string requestID;
                 string overallStatus;
-                return new ExecuteAPIResponse<CreateResult>(c.soapclient.Create(new CreateOptions(), os, out requestID, out overallStatus), requestID, overallStatus);
+                return new ExecuteAPIResponse<CreateResult>(client.SoapClient.Create(new CreateOptions(), o, out requestID, out overallStatus), requestID, overallStatus);
             }, objs);
             if (response != null)
                 if (response.GetType() == typeof(CreateResult[]) && response.Length > 0)
@@ -560,11 +631,11 @@ namespace FuelSDK
         {
             if (objs == null)
                 throw new ArgumentNullException("objs");
-            var response = ExecuteAPI((c, os) =>
+            var response = ExecuteAPI((client, o) =>
             {
                 string requestID;
                 string overallStatus;
-                return new ExecuteAPIResponse<UpdateResult>(c.soapclient.Update(new UpdateOptions(), os, out requestID, out overallStatus), requestID, overallStatus);
+                return new ExecuteAPIResponse<UpdateResult>(client.SoapClient.Update(new UpdateOptions(), o, out requestID, out overallStatus), requestID, overallStatus);
             }, objs);
             if (response != null)
                 if (response.GetType() == typeof(UpdateResult[]) && response.Length > 0)
@@ -589,11 +660,11 @@ namespace FuelSDK
         {
             if (objs == null)
                 throw new ArgumentNullException("objs");
-            var response = ExecuteAPI((c, os) =>
+            var response = ExecuteAPI((client, o) =>
             {
                 string requestID;
                 string overallStatus;
-                return new ExecuteAPIResponse<DeleteResult>(c.soapclient.Delete(new DeleteOptions(), os, out requestID, out overallStatus), requestID, overallStatus);
+                return new ExecuteAPIResponse<DeleteResult>(client.SoapClient.Delete(new DeleteOptions(), o, out requestID, out overallStatus), requestID, overallStatus);
             }, objs);
             if (response != null)
                 if (response.GetType() == typeof(DeleteResult[]) && response.Length > 0)
@@ -625,12 +696,12 @@ namespace FuelSDK
         {
             if (objs == null)
                 throw new ArgumentNullException("objs");
-            var response = ExecuteAPI((c, os) =>
+            var response = ExecuteAPI((client, o) =>
             {
                 string requestID;
                 string overallStatus;
                 string overallStatusMessage;
-                return new ExecuteAPIResponse<PerformResult>(c.soapclient.Perform(new PerformOptions(), performAction, os, out overallStatus, out overallStatusMessage, out requestID), requestID, overallStatus) { OverallStatusMessage = overallStatusMessage };
+                return new ExecuteAPIResponse<PerformResult>(client.SoapClient.Perform(new PerformOptions(), performAction, o, out overallStatus, out overallStatusMessage, out requestID), requestID, overallStatus) { OverallStatusMessage = overallStatusMessage };
             }, objs);
             if (response != null)
                 if (response.GetType() == typeof(PerformResult[]) && response.Length > 0)
@@ -695,11 +766,11 @@ namespace FuelSDK
                         rr.Properties = x.Props;
                 }
                 return rr;
-            }, (c, x) =>
+            }, (client, o) =>
             {
                 string requestID;
                 APIObject[] objectResults;
-                string overallStatus = c.soapclient.Retrieve(x[0], out requestID, out objectResults);
+                string overallStatus = client.SoapClient.Retrieve(o[0], out requestID, out objectResults);
                 return new ExecuteAPIResponse<APIObject>(objectResults, requestID, overallStatus) { OverallStatusMessage = overallStatus };
             }, objs);
             if (response != null)
@@ -766,10 +837,13 @@ namespace FuelSDK
         {
             if (objs == null)
                 throw new ArgumentNullException("objs");
-            var response = ExecuteAPI(x => new ObjectDefinitionRequest { ObjectType = TranslateObject(x).GetType().ToString().Replace("FuelSDK.", string.Empty) }, (c, os) =>
+            var response = ExecuteAPI(x => new ObjectDefinitionRequest
+            {
+                ObjectType = TranslateObject(x).GetType().ToString().Replace("FuelSDK.", string.Empty)
+            }, (client, o) =>
             {
                 string requestID;
-                return new ExecuteAPIResponse<ObjectDefinition>(c.soapclient.Describe(os, out requestID), requestID, "OK");
+                return new ExecuteAPIResponse<ObjectDefinition>(client.SoapClient.Describe(o, out requestID), requestID, "OK");
             }, objs);
             if (response != null)
                 if (response.Length > 0)
@@ -801,6 +875,16 @@ namespace FuelSDK
     {
         internal string FolderMediaType = "list";
         public int FolderID { get; set; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
+    }
+
+    public class ET_QueryDefinition : QueryDefinition
+    {
         public PostReturn Post() { return new PostReturn(this); }
         public PatchReturn Patch() { return new PatchReturn(this); }
         public DeleteReturn Delete() { return new DeleteReturn(this); }
