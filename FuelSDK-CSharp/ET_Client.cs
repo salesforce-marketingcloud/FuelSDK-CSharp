@@ -175,7 +175,7 @@ namespace FuelSDK
     {
         [XmlIgnore()]
         [JsonIgnore]
-        public FuelSDK.ET_Client AuthStub { get; set; }
+        public ET_Client AuthStub { get; set; }
         [XmlIgnore()]
         public string[] Props { get; set; }
         [XmlIgnore()]
@@ -224,59 +224,59 @@ namespace FuelSDK
             _translators.Add(typeof(Subscriber), typeof(ET_Subscriber));
             _translators.Add(typeof(ET_Subscriber), typeof(Subscriber));
 
-            _translators.Add(typeof(ET_ProfileAttribute), typeof(FuelSDK.Attribute));
-            _translators.Add(typeof(FuelSDK.Attribute), typeof(ET_ProfileAttribute));
+            _translators.Add(typeof(ET_ProfileAttribute), typeof(Attribute));
+            _translators.Add(typeof(Attribute), typeof(ET_ProfileAttribute));
 
-            _translators.Add(typeof(ET_Email), typeof(FuelSDK.Email));
-            _translators.Add(typeof(FuelSDK.Email), typeof(ET_Email));
+            _translators.Add(typeof(ET_Email), typeof(Email));
+            _translators.Add(typeof(Email), typeof(ET_Email));
 
-            _translators.Add(typeof(ET_SubscriberList), typeof(FuelSDK.SubscriberList));
-            _translators.Add(typeof(FuelSDK.SubscriberList), typeof(ET_SubscriberList));
+            _translators.Add(typeof(ET_SubscriberList), typeof(SubscriberList));
+            _translators.Add(typeof(SubscriberList), typeof(ET_SubscriberList));
 
-            _translators.Add(typeof(ET_List_Subscriber), typeof(FuelSDK.ListSubscriber));
-            _translators.Add(typeof(FuelSDK.ListSubscriber), typeof(ET_List_Subscriber));
+            _translators.Add(typeof(ET_List_Subscriber), typeof(ListSubscriber));
+            _translators.Add(typeof(ListSubscriber), typeof(ET_List_Subscriber));
 
-            _translators.Add(typeof(ET_DataExtension), typeof(FuelSDK.DataExtension));
-            _translators.Add(typeof(FuelSDK.DataExtension), typeof(ET_DataExtension));
+            _translators.Add(typeof(ET_DataExtension), typeof(DataExtension));
+            _translators.Add(typeof(DataExtension), typeof(ET_DataExtension));
 
-            _translators.Add(typeof(ET_DataExtensionColumn), typeof(FuelSDK.DataExtensionField));
-            _translators.Add(typeof(FuelSDK.DataExtensionField), typeof(ET_DataExtensionColumn));
+            _translators.Add(typeof(ET_DataExtensionColumn), typeof(DataExtensionField));
+            _translators.Add(typeof(DataExtensionField), typeof(ET_DataExtensionColumn));
 
-            _translators.Add(typeof(ET_DataExtensionRow), typeof(FuelSDK.DataExtensionObject));
-            _translators.Add(typeof(FuelSDK.DataExtensionObject), typeof(ET_DataExtensionRow));
+            _translators.Add(typeof(ET_DataExtensionRow), typeof(DataExtensionObject));
+            _translators.Add(typeof(DataExtensionObject), typeof(ET_DataExtensionRow));
 
-            _translators.Add(typeof(ET_SendClassification), typeof(FuelSDK.SendClassification));
-            _translators.Add(typeof(FuelSDK.SendClassification), typeof(ET_SendClassification));
+            _translators.Add(typeof(ET_SendClassification), typeof(SendClassification));
+            _translators.Add(typeof(SendClassification), typeof(ET_SendClassification));
 
-            _translators.Add(typeof(ET_SendDefinitionList), typeof(FuelSDK.SendDefinitionList));
-            _translators.Add(typeof(FuelSDK.SendDefinitionList), typeof(ET_SendDefinitionList));
+            _translators.Add(typeof(ET_SendDefinitionList), typeof(SendDefinitionList));
+            _translators.Add(typeof(SendDefinitionList), typeof(ET_SendDefinitionList));
 
-            _translators.Add(typeof(ET_SenderProfile), typeof(FuelSDK.SenderProfile));
-            _translators.Add(typeof(FuelSDK.SenderProfile), typeof(ET_SenderProfile));
+            _translators.Add(typeof(ET_SenderProfile), typeof(SenderProfile));
+            _translators.Add(typeof(SenderProfile), typeof(ET_SenderProfile));
 
-            _translators.Add(typeof(ET_DeliveryProfile), typeof(FuelSDK.DeliveryProfile));
-            _translators.Add(typeof(FuelSDK.DeliveryProfile), typeof(ET_DeliveryProfile));
+            _translators.Add(typeof(ET_DeliveryProfile), typeof(DeliveryProfile));
+            _translators.Add(typeof(DeliveryProfile), typeof(ET_DeliveryProfile));
 
-            _translators.Add(typeof(ET_TriggeredSend), typeof(FuelSDK.TriggeredSendDefinition));
-            _translators.Add(typeof(FuelSDK.TriggeredSendDefinition), typeof(ET_TriggeredSend));
+            _translators.Add(typeof(ET_TriggeredSend), typeof(TriggeredSendDefinition));
+            _translators.Add(typeof(TriggeredSendDefinition), typeof(ET_TriggeredSend));
 
-            _translators.Add(typeof(ET_EmailSendDefinition), typeof(FuelSDK.EmailSendDefinition));
-            _translators.Add(typeof(FuelSDK.EmailSendDefinition), typeof(ET_EmailSendDefinition));
+            _translators.Add(typeof(ET_EmailSendDefinition), typeof(EmailSendDefinition));
+            _translators.Add(typeof(EmailSendDefinition), typeof(ET_EmailSendDefinition));
 
-            _translators.Add(typeof(ET_Send), typeof(FuelSDK.Send));
-            _translators.Add(typeof(FuelSDK.Send), typeof(ET_Send));
+            _translators.Add(typeof(ET_Send), typeof(Send));
+            _translators.Add(typeof(Send), typeof(ET_Send));
 
-            _translators.Add(typeof(ET_Import), typeof(FuelSDK.ImportDefinition));
-            _translators.Add(typeof(FuelSDK.ImportDefinition), typeof(ET_Import));
+            _translators.Add(typeof(ET_Import), typeof(ImportDefinition));
+            _translators.Add(typeof(ImportDefinition), typeof(ET_Import));
 
-            _translators.Add(typeof(ET_ImportResult), typeof(FuelSDK.ImportResultsSummary));
-            _translators.Add(typeof(FuelSDK.ImportResultsSummary), typeof(ET_ImportResult));
+            _translators.Add(typeof(ET_ImportResult), typeof(ImportResultsSummary));
+            _translators.Add(typeof(ImportResultsSummary), typeof(ET_ImportResult));
 
             // The translation for this is handled in the Get() method for DataExtensionObject so no need to translate it
             _translators.Add(typeof(APIProperty), typeof(APIProperty));
 
-            _translators.Add(typeof(ET_Trigger), typeof(FuelSDK.TriggeredSend));
-            _translators.Add(typeof(FuelSDK.TriggeredSend), typeof(ET_Trigger));
+            _translators.Add(typeof(ET_Trigger), typeof(TriggeredSend));
+            _translators.Add(typeof(TriggeredSend), typeof(ET_Trigger));
 
             // Tracking Events
             _translators.Add(typeof(ET_BounceEvent), typeof(BounceEvent));
@@ -783,47 +783,47 @@ namespace FuelSDK
 
     #region Subscriber Related Objects
 
-    public class ET_Subscriber : FuelSDK.Subscriber
+    public class ET_Subscriber : Subscriber
     {
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_ProfileAttribute : FuelSDK.Attribute { }
-    public class ET_ImportResult : FuelSDK.ImportResultsSummary { }
-    public class ET_SubscriberList : FuelSDK.SubscriberList { }
+    public class ET_ProfileAttribute : Attribute { }
+    public class ET_ImportResult : ImportResultsSummary { }
+    public class ET_SubscriberList : SubscriberList { }
 
     public class ET_List : List
     {
         internal string FolderMediaType = "list";
         public int FolderID { get; set; }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_Send : Send
     {
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_List_Subscriber : ListSubscriber
     {
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     #endregion
@@ -834,24 +834,24 @@ namespace FuelSDK
     {
         internal string FolderMediaType = "content";
         public int FolderID { get; set; }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_Email : Email
     {
         internal string FolderMediaType = "email";
         public int FolderID { get; set; }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_EmailSendDefinition : EmailSendDefinition
@@ -859,20 +859,20 @@ namespace FuelSDK
         internal string FolderMediaType = "userinitiatedsends";
         internal string LastTaskID = string.Empty;
         public int FolderID { get; set; }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
-        public FuelSDK.PerformReturn Send()
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
+        public PerformReturn Send()
         {
-            var r = new FuelSDK.PerformReturn(this, "start");
+            var r = new PerformReturn(this, "start");
             if (r.Results.Length == 1)
                 LastTaskID = ((ResultDetail)r.Results[0]).Task.ID;
             return r;
         }
-        public FuelSDK.GetReturn Status()
+        public GetReturn Status()
         {
             if (LastTaskID == string.Empty)
                 throw new Exception("No ID available in order to return status for ET_EmailSendDefinition");
@@ -889,13 +889,13 @@ namespace FuelSDK
     public class ET_Import : ImportDefinition
     {
         internal string LastTaskID = string.Empty;
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
-        public FuelSDK.GetReturn Status()
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
+        public GetReturn Status()
         {
             if (LastTaskID == string.Empty)
                 throw new Exception("No ID available in order to return status for ET_Import");
@@ -908,9 +908,9 @@ namespace FuelSDK
             LastRequestID = r.RequestID;
             return r;
         }
-        public FuelSDK.PerformReturn Start()
+        public PerformReturn Start()
         {
-            var r = new FuelSDK.PerformReturn(this, "start");
+            var r = new PerformReturn(this, "start");
             if (r.Results.Length == 1)
                 LastTaskID = ((ResultDetail)r.Results[0]).Task.ID;
             return r;
@@ -926,12 +926,12 @@ namespace FuelSDK
         internal string FolderMediaType = "dataextension";
         public int FolderID { get; set; }
         public ET_DataExtensionColumn[] Columns { get; set; }
-        public FuelSDK.PostReturn Post()
+        public PostReturn Post()
         {
             ET_DataExtension de = this;
             de.Fields = Columns;
             de.Columns = null;
-            var pr = new FuelSDK.PostReturn(de);
+            var pr = new PostReturn(de);
             foreach (var rd in pr.Results)
             {
                 ((ET_DataExtension)rd.Object).Columns = (ET_DataExtensionColumn[])((ET_DataExtension)rd.Object).Fields;
@@ -939,12 +939,12 @@ namespace FuelSDK
             }
             return pr;
         }
-        public FuelSDK.PatchReturn Patch()
+        public PatchReturn Patch()
         {
             ET_DataExtension de = this;
             de.Fields = Columns;
             de.Columns = null;
-            var pr = new FuelSDK.PatchReturn(de);
+            var pr = new PatchReturn(de);
             foreach (var rd in pr.Results)
             {
                 ((ET_DataExtension)rd.Object).Columns = (ET_DataExtensionColumn[])((ET_DataExtension)rd.Object).Fields;
@@ -952,13 +952,13 @@ namespace FuelSDK
             }
             return pr;
         }
-        public FuelSDK.DeleteReturn Delete()
+        public DeleteReturn Delete()
         {
             ET_DataExtension de = this;
             de.Fields = Columns;
-            return new FuelSDK.DeleteReturn(de);
+            return new DeleteReturn(de);
         }
-        public FuelSDK.GetReturn Get()
+        public GetReturn Get()
         {
             var r = new GetReturn(this);
             LastRequestID = r.RequestID;
@@ -969,7 +969,7 @@ namespace FuelSDK
             }
             return r;
         }
-        public FuelSDK.GetReturn GetMoreResults()
+        public GetReturn GetMoreResults()
         {
             var r = new GetReturn(this, true, null);
             LastRequestID = r.RequestID;
@@ -980,17 +980,17 @@ namespace FuelSDK
             }
             return r;
         }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_DataExtensionColumn : FuelSDK.DataExtensionField
+    public class ET_DataExtensionColumn : DataExtensionField
     {
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_DataExtensionRow : FuelSDK.DataExtensionObject
+    public class ET_DataExtensionRow : DataExtensionObject
     {
         public string DataExtensionName { get; set; }
         public string DataExtensionCustomerKey { get; set; }
@@ -999,7 +999,7 @@ namespace FuelSDK
         {
             ColumnValues = new Dictionary<string, string>();
         }
-        public FuelSDK.PostReturn Post()
+        public PostReturn Post()
         {
             GetDataExtensionCustomerKey();
             ET_DataExtensionRow row = this;
@@ -1008,9 +1008,9 @@ namespace FuelSDK
             row.ColumnValues = null;
             row.DataExtensionName = null;
             row.DataExtensionCustomerKey = null;
-            return new FuelSDK.PostReturn(row);
+            return new PostReturn(row);
         }
-        public FuelSDK.PatchReturn Patch()
+        public PatchReturn Patch()
         {
             GetDataExtensionCustomerKey();
             ET_DataExtensionRow row = this;
@@ -1019,9 +1019,9 @@ namespace FuelSDK
             row.ColumnValues = null;
             row.DataExtensionName = null;
             row.DataExtensionCustomerKey = null;
-            return new FuelSDK.PatchReturn(row);
+            return new PatchReturn(row);
         }
-        public FuelSDK.DeleteReturn Delete()
+        public DeleteReturn Delete()
         {
             GetDataExtensionCustomerKey();
             ET_DataExtensionRow row = this;
@@ -1030,9 +1030,9 @@ namespace FuelSDK
             row.Keys = ColumnValues.Select(x => new APIProperty { Name = x.Key, Value = x.Value }).ToArray();
             row.DataExtensionName = null;
             row.DataExtensionCustomerKey = null;
-            return new FuelSDK.DeleteReturn(row);
+            return new DeleteReturn(row);
         }
-        public FuelSDK.GetReturn Get()
+        public GetReturn Get()
         {
             GetDataExtensionName();
             var r = new GetReturn(this, false, "DataExtensionObject[" + DataExtensionName + "]");
@@ -1044,7 +1044,7 @@ namespace FuelSDK
             }
             return r;
         }
-        public FuelSDK.GetReturn GetMoreResults()
+        public GetReturn GetMoreResults()
         {
             GetDataExtensionName();
             var r = new GetReturn(this, true, "DataExtensionObject[" + DataExtensionName + "]");
@@ -1056,7 +1056,7 @@ namespace FuelSDK
             }
             return r;
         }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public InfoReturn Info() { return new InfoReturn(this); }
         private void GetDataExtensionName()
         {
             if (DataExtensionName == null)
@@ -1099,12 +1099,12 @@ namespace FuelSDK
 
     #region Misc Objects
 
-    public class ET_TriggeredSend : FuelSDK.TriggeredSendDefinition
+    public class ET_TriggeredSend : TriggeredSendDefinition
     {
         public int FolderID { get; set; }
         internal string FolderMediaType = "triggered_send";
         public ET_Subscriber[] Subscribers { get; set; }
-        public FuelSDK.SendReturn Send()
+        public SendReturn Send()
         {
             var ts = new ET_Trigger
             {
@@ -1114,33 +1114,33 @@ namespace FuelSDK
                 AuthStub = AuthStub,
             };
             ((ET_TriggeredSend)ts.TriggeredSendDefinition).Subscribers = null;
-            return new FuelSDK.SendReturn(ts);
+            return new SendReturn(ts);
         }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_Folder : FuelSDK.DataFolder
+    public class ET_Folder : DataFolder
     {
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.PatchReturn Patch() { return new FuelSDK.PatchReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_ObjectDefinition : FuelSDK.ObjectDefinition { }
-    public class ET_PropertyDefinition : FuelSDK.PropertyDefinition { }
-    public class ET_SendClassification : FuelSDK.SendClassification { }
-    public class ET_SenderProfile : FuelSDK.SenderProfile { }
-    public class ET_DeliveryProfile : FuelSDK.DeliveryProfile { }
-    public class ET_SendDefinitionList : FuelSDK.SendDefinitionList { }
-    public class ET_Trigger : FuelSDK.TriggeredSend { }
+    public class ET_ObjectDefinition : ObjectDefinition { }
+    public class ET_PropertyDefinition : PropertyDefinition { }
+    public class ET_SendClassification : SendClassification { }
+    public class ET_SenderProfile : SenderProfile { }
+    public class ET_DeliveryProfile : DeliveryProfile { }
+    public class ET_SendDefinitionList : SendDefinitionList { }
+    public class ET_Trigger : TriggeredSend { }
 
     #endregion
 
@@ -1150,45 +1150,45 @@ namespace FuelSDK
     {
         public Boolean GetSinceLastBatch { get; set; }
         public ET_OpenEvent() { GetSinceLastBatch = true; }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_BounceEvent : BounceEvent
     {
         public Boolean GetSinceLastBatch { get; set; }
         public ET_BounceEvent() { GetSinceLastBatch = true; }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_ClickEvent : ClickEvent
     {
         public Boolean GetSinceLastBatch { get; set; }
         public ET_ClickEvent() { GetSinceLastBatch = true; }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_UnsubEvent : UnsubEvent
     {
         public Boolean GetSinceLastBatch { get; set; }
         public ET_UnsubEvent() { GetSinceLastBatch = true; }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_SentEvent : SentEvent
     {
         public Boolean GetSinceLastBatch { get; set; }
         public ET_SentEvent() { GetSinceLastBatch = true; }
-        public FuelSDK.GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
-        public FuelSDK.InfoReturn Info() { return new FuelSDK.InfoReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     #endregion
@@ -1227,10 +1227,10 @@ namespace FuelSDK
             if (obj["favorite"] != null)
                 Favorite = bool.Parse(CleanRestValue(obj["favorite"]));
         }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new FuelSDK.GetReturn(this); Page = r.LastPageNumber; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { Page++; var r = new FuelSDK.GetReturn(this); Page = r.LastPageNumber; return r; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn GetMoreResults() { Page++; var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
     }
 
     public class ET_CampaignAsset : FuelObject
@@ -1258,10 +1258,10 @@ namespace FuelSDK
             if (obj["itemID"] != null)
                 ItemID = CleanRestValue(obj["itemID"]);
         }
-        public FuelSDK.PostReturn Post() { return new FuelSDK.PostReturn(this); }
-        public FuelSDK.DeleteReturn Delete() { return new FuelSDK.DeleteReturn(this); }
-        public FuelSDK.GetReturn Get() { var r = new FuelSDK.GetReturn(this); Page = r.LastPageNumber; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { Page++; var r = new FuelSDK.GetReturn(this); Page = r.LastPageNumber; return r; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn GetMoreResults() { Page++; var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
     }
 
     public class ET_Endpoint : FuelObject
@@ -1281,8 +1281,8 @@ namespace FuelSDK
             if (obj["url"] != null)
                 URL = CleanRestValue(obj["url"]);
         }
-        public FuelSDK.GetReturn Get() { var r = new FuelSDK.GetReturn(this); Page = r.LastPageNumber; return r; }
-        public FuelSDK.GetReturn GetMoreResults() { Page++; var r = new FuelSDK.GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn Get() { var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn GetMoreResults() { Page++; var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
     }
 
     #endregion
