@@ -37,8 +37,8 @@ task Compile -depends Init {
 task Test -depends Compile -precondition { return $run_tests } {
 	$old = pwd
 	cd $build_dir
-	#& $tools_dir\xUnit\xunit.console.clr4.exe "$35_build_dir\CSharpSDK.Tests.dll" /noshadow
-	#& $tools_dir\xUnit\xunit.console.clr4.exe "$40_build_dir\CSharpSDK.Tests.dll" /noshadow
+	#& $tools_dir\xUnit\xunit.console.clr4.exe "$35_build_dir\FuelSDK.Tests.dll" /noshadow
+	#& $tools_dir\xUnit\xunit.console.clr4.exe "$40_build_dir\FuelSDK.Tests.dll" /noshadow
 	cd $old
 }
 
@@ -54,12 +54,12 @@ task Dependency {
 task Release -depends Dependency, Compile, Test {
 	cd $build_dir
 	& $tools_dir\7za.exe a $release_dir\FuelSDK-CSharp.zip `
-		*\CSharpSDK.dll `
-		*\CSharpSDK.xml `
+		*\FuelSDK.dll `
+		*\FuelSDK.xml `
 		*\FuelSDK_config.xml `
 		*\Newtonsoft.Json.dll `
 		*\Newtonsoft.Json.xml `
-    		..\license.txt
+    	..\license.txt
 	if ($lastExitCode -ne 0) {
 		throw "Error: Failed to execute ZIP command"
     }

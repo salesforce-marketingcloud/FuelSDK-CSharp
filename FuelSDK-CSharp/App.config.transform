@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0"?>
 <configuration>
   <configSections>
-    <section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, CSharpSDK" />
+    <section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" />
   </configSections>
   <fuelSDK
     appSignature="none"
