@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FuelSDK;
 
 namespace objsamples
 {
@@ -10,25 +6,22 @@ namespace objsamples
     {
         static void Main(string[] args)
         {
+            //args = new[] { "list", "campaign", "contentarea", "dataextension", "email", "folder", "list", "subscriber", "triggeredsend", "listsubscriber", "addsubscribertolist", "createdadataextensions", "openevent", "bounceevent", "sentevent", "clickevent", "unsubevent" };
+            //args = new[] { "campaign" };
             if (args.Length == 0)
             {
                 Console.WriteLine("Input Object to test:");
-                string input = Console.ReadLine();
-                TestObject(input);
+                TestObject(Console.ReadLine());
             }
             else
-            {
                 foreach (string objectName in args)
-                {
                     TestObject(objectName);
-                }
-            }
-
             Console.WriteLine("Press Enter to Exit");
             Console.ReadLine();
         }
 
-        static void TestObject(string objectName) {
+        static void TestObject(string objectName)
+        {
             switch (objectName.ToUpper())
             {
                 case "CAMPAIGN":

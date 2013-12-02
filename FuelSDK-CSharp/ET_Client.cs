@@ -48,7 +48,15 @@ namespace FuelSDK
             set { this["soapEndPoint"] = value; }
         }
 
-        public object Clone() { return MemberwiseClone(); }
+        public object Clone()
+        {
+            return MemberwiseClone();
+        }
+
+        public override bool IsReadOnly()
+        {
+            return false;
+        }
     }
 
     #endregion
@@ -96,7 +104,7 @@ namespace FuelSDK
                     configSection.SoapEndPoint = parameters["soapEndPoint"];
             }
 
-            if (configSection.ClientId.Equals(string.Empty) || configSection.ClientSecret.Equals(string.Empty))
+            if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ET_Client");
 
             // If JWT URL Parameter Used
@@ -108,9 +116,9 @@ namespace FuelSDK
                 Stack = refreshState.Stack;
                 RefreshToken();
             }
-            else if (parameters != null && parameters.AllKeys.Contains("jwt"))
+            else if (parameters != null && parameters.AllKeys.Contains("jwt") && !string.IsNullOrEmpty(parameters["jwt"]))
             {
-                if (configSection.AppSignature.Equals(string.Empty))
+                if (string.IsNullOrEmpty(configSection.AppSignature))
                     throw new Exception("Unable to utilize JWT for SSO without appSignature: Must be provided in config file or passed when instantiating ET_Client");
                 var encodedJWT = parameters["jwt"].ToString().Trim();
                 var decodedJWT = JsonWebToken.Decode(encodedJWT, configSection.AppSignature);
@@ -369,6 +377,8 @@ namespace FuelSDK
                 var returnObject = (APIObject)Activator.CreateInstance(_translators[inputObject.GetType()]);
                 foreach (var prop in inputObject.GetType().GetProperties())
                 {
+                    if (prop.Name == "UniqueID")
+                        continue;
                     var propValue = prop.GetValue(inputObject, null);
                     if ((prop.PropertyType.IsSubclassOf(typeof(APIObject)) || prop.PropertyType == typeof(APIObject)) && propValue != null)
                         prop.SetValue(returnObject, TranslateObject(propValue), null);
@@ -474,7 +484,7 @@ namespace FuelSDK
                 var response = func(client, objs.Select(select).ToArray());
                 RequestID = response.RequestID;
                 Status = (response.OverallStatus == "OK" || response.OverallStatus == "MoreDataAvailable");
-                Code = 200;
+                Code = (Status ? 200 : 0);
                 MoreResults = (response.OverallStatus == "MoreDataAvailable");
                 Message = (response.OverallStatusMessage ?? string.Empty);
                 return response.Results;
