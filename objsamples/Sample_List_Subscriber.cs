@@ -43,7 +43,7 @@ namespace objsamples
                     if (postResponse.Results.Length > 0 && postResponse.Results[0].ErrorCode == 12014)
                     {
                         // If the subscriber already exists in the account then we need to do an update.
-                        //Update Subscriber On List 
+                        // Update Subscriber On List 
                         Console.WriteLine("\n Update Subscriber to add to List");
                         PatchReturn patchResponse = postSub.Patch();
                         Console.WriteLine("Post Status: " + patchResponse.Status.ToString());
@@ -64,11 +64,13 @@ namespace objsamples
                 Console.WriteLine("Message: " + getResponse.Message);
                 Console.WriteLine("Code: " + getResponse.Code.ToString());
                 Console.WriteLine("Results Length: " + getResponse.Results.Length);
-                foreach (ET_List_Subscriber ResultListSub in getResponse.Results)
-                    Console.WriteLine("--ListID: " + ResultListSub.ID + ", SubscriberKey(EmailAddress): " + ResultListSub.SubscriberKey);
+                foreach (ET_List_Subscriber resultListSub in getResponse.Results)
+                    Console.WriteLine("--ListID: " + resultListSub.ID + ", SubscriberKey(EmailAddress): " + resultListSub.SubscriberKey);
             }
 
 #if false
+            var filterDate = new DateTime(2013, 1, 15, 13, 0, 0);
+
             Console.WriteLine("Retrieve Filtered ListSubscribers with GetMoreResults");
             var oe2 = new ET_List_Subscriber
             {

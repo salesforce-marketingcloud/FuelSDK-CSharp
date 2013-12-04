@@ -6,8 +6,7 @@ namespace objsamples
     {
         static void Main(string[] args)
         {
-            //args = new[] { "list", "campaign", "contentarea", "dataextension", "email", "folder", "list", "subscriber", "triggeredsend", "listsubscriber", "addsubscribertolist", "createdadataextensions", "openevent", "bounceevent", "sentevent", "clickevent", "unsubevent" };
-            //args = new[] { "campaign" };
+            //args = new[] { "list", "campaign", "contentarea", "dataextension", "email", "folder", "list", "subscriber", "triggeredsend", "listsubscriber", "addsubscribertolist", "createdataextensions", "openevent", "bounceevent", "sentevent", "clickevent", "unsubevent" };
             if (args.Length == 0)
             {
                 Console.WriteLine("Input Object to test:");

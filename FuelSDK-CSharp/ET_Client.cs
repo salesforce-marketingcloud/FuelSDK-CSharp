@@ -108,6 +108,7 @@ namespace FuelSDK
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ET_Client");
 
             // If JWT URL Parameter Used
+            var organizationFind = false;
             if (refreshState != null)
             {
                 RefreshKey = refreshState.RefreshKey;
@@ -137,7 +138,10 @@ namespace FuelSDK
                 }
             }
             else
+            {
                 RefreshToken();
+                organizationFind = true;
+            }
 
             // Find the appropriate endpoint for the acccount
             var grSingleEndpoint = new ET_Endpoint { AuthStub = this, Type = "soap" }.Get();
@@ -147,15 +151,82 @@ namespace FuelSDK
                 throw new Exception("Unable to determine stack using /platform/v1/endpoints: " + grSingleEndpoint.Message);
 
             // Create the SOAP binding for call with Oauth.
-            var binding = new BasicHttpBinding
-            {
-                Name = "UserNameSoapBinding",
-                MaxReceivedMessageSize = 2147483647,
-            };
-            binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
-            SoapClient = new SoapClient(binding, new EndpointAddress(new Uri(configSection.SoapEndPoint)));
+            SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
             SoapClient.ClientCredentials.UserName.UserName = "*";
             SoapClient.ClientCredentials.UserName.Password = "*";
+
+            // Find Organization Information
+            if (organizationFind)
+                using (var scope = new OperationContextScope(SoapClient.InnerChannel))
+                {
+                    // Add oAuth token to SOAP header.
+                    XNamespace ns = "http://exacttarget.com";
+                    var oauthElement = new XElement(ns + "oAuthToken", InternalAuthToken);
+                    var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                    OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+
+                    var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
+                    OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
+                    httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ET_Client.SDKVersion);
+
+                    string requestID;
+                    APIObject[] results;
+                    var r = SoapClient.Retrieve(new RetrieveRequest { ObjectType = "BusinessUnit", Properties = new[] { "ID", "Client.EnterpriseID" } }, out requestID, out results);
+                    if (r == "OK" && results.Length > 0)
+                    {
+                        EnterpriseId = results[0].Client.EnterpriseID.ToString();
+                        OrganizationId = results[0].ID.ToString();
+                        Stack = GetStackFromSoapEndPoint(new Uri(configSection.SoapEndPoint));
+                    }
+                }
+        }
+
+        private string GetStackFromSoapEndPoint(Uri uri)
+        {
+            var parts = uri.Host.Split('.');
+            if (parts.Length < 2 || !parts[0].Equals("webservice", StringComparison.OrdinalIgnoreCase))
+                throw new Exception("not exacttarget.com");
+            return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
+        }
+
+        private static Binding GetSoapBinding()
+        {
+            //var binding = new BasicHttpBinding
+            //{
+            //    Name = "UserNameSoapBinding",
+            //    MaxReceivedMessageSize = 2147483647,
+            //};
+            //binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
+            return new CustomBinding(new BindingElementCollection
+            { 
+                SecurityBindingElement.CreateUserNameOverTransportBindingElement(), 
+                new TextMessageEncodingBindingElement
+                {
+                    MessageVersion = MessageVersion.Soap12WSAddressingAugust2004,
+                    ReaderQuotas =
+                    {
+                        MaxDepth = 32,
+                        MaxStringContentLength = int.MaxValue,
+                        MaxArrayLength = int.MaxValue,
+                        MaxBytesPerRead = int.MaxValue,
+                        MaxNameTableCharCount = int.MaxValue
+                    }
+                }, 
+                new HttpsTransportBindingElement
+                {
+                    TransferMode = TransferMode.Buffered,
+                    MaxReceivedMessageSize = 655360000,
+                    MaxBufferSize = 655360000,
+                    KeepAliveEnabled = true
+                } })
+            {
+                Name = "UserNameSoapBinding",
+                Namespace = "Core.Soap",
+                CloseTimeout = new TimeSpan(0, 50, 0),
+                OpenTimeout = new TimeSpan(0, 50, 0),
+                ReceiveTimeout = new TimeSpan(0, 50, 0),
+                SendTimeout = new TimeSpan(0, 50, 0)
+            };
         }
 
         public void RefreshToken(bool force = false)
@@ -246,7 +317,6 @@ namespace FuelSDK
         public string LastRequestID { get; set; }
         [XmlElementAttribute(Order = 10000), JsonIgnore]
         public string DirectoryPath { get; set; }
-
         [XmlIgnore, JsonIgnore]
         public string UniqueID
         {
@@ -266,7 +336,7 @@ namespace FuelSDK
         public string Endpoint { get; set; }
         public string[] URLProperties { get; set; }
         public string[] RequiredURLProperties { get; set; }
-        public int Page { get; set; }
+        public int? Page { get; set; }
         protected string CleanRestValue(JToken obj) { return obj.ToString().Replace("\"", "").Trim(); }
     }
 
@@ -438,8 +508,12 @@ namespace FuelSDK
             {
                 var returnObject = (object)Activator.CreateInstance(_translators[inputObject.GetType()]);
                 foreach (var prop in inputObject.GetType().GetProperties())
+                {
+                    if (prop.Name == "UniqueID")
+                        continue;
                     if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
                         prop.SetValue(returnObject, prop.GetValue(inputObject, null), null);
+                }
                 return returnObject;
             }
             return inputObject;
@@ -487,6 +561,17 @@ namespace FuelSDK
                 Code = (Status ? 200 : 0);
                 MoreResults = (response.OverallStatus == "MoreDataAvailable");
                 Message = (response.OverallStatusMessage ?? string.Empty);
+
+                string r;
+                APIObject[] a;
+                var d = client.SoapClient.Retrieve(
+                    new RetrieveRequest
+                    {
+                        ObjectType = "BusinessUnit",
+                        Properties = new[] { "ID", "Name" }
+                    }, out r, out a
+                );
+
                 return response.Results;
             }
         }
@@ -505,16 +590,24 @@ namespace FuelSDK
                 {
                     var match = false;
                     foreach (var prop in obj.GetType().GetProperties())
+                    {
+                        if (prop.Name == "UniqueID")
+                            continue;
                         if (obj.URLProperties.Contains(prop.Name) && (propValue = prop.GetValue(obj, null)) != null)
                             if ((propValueAsString = propValue.ToString().Trim()).Length > 0 && propValueAsString != "0")
                                 match = true;
+                    }
                     if (!match)
                         throw new Exception("Unable to process request due to missing required property: " + urlProp);
                 }
             foreach (var prop in obj.GetType().GetProperties())
+            {
+                if (prop.Name == "UniqueID")
+                    continue;
                 if (obj.URLProperties.Contains(prop.Name) && (propValue = prop.GetValue(obj, null)) != null)
                     if ((propValueAsString = propValue.ToString().Trim()).Length > 0 && propValueAsString != "0")
                         completeURL = completeURL.Replace("{" + prop.Name + "}", propValueAsString);
+            }
 
             // Clean up not required URL parameters
             if (obj.URLProperties != null)
@@ -609,8 +702,8 @@ namespace FuelSDK
                 throw new ArgumentNullException("obj");
             var response = ExecuteFuel(obj, obj.RequiredURLProperties, "POST", true);
             if (string.IsNullOrEmpty(response))
-                return;
-            if (response.StartsWith("["))
+                Results = new ResultDetail[0];
+            else if (response.StartsWith("["))
                 Results = JArray.Parse(response)
                     .Select(x => new ResultDetail { Object = (APIObject)Activator.CreateInstance(obj.GetType(), BindingFlags.Public | BindingFlags.Instance, null, new object[] { x }, null) }).ToArray();
             else
@@ -759,12 +852,12 @@ namespace FuelSDK
                         rr.Filter = x.SearchFilter;
 
                     // Use the name from the object passed in unless an override is passed (Used for DataExtensionObject)
-                    if (!string.IsNullOrEmpty(overrideObjectType))
+                    if (string.IsNullOrEmpty(overrideObjectType))
                         rr.ObjectType = TranslateObject(x).GetType().ToString().Replace("FuelSDK.", string.Empty);
                     else
                         rr.ObjectType = overrideObjectType;
 
-                    //If they didn't specify Props then we look them up using Info()
+                    // If they didn't specify Props then we look them up using Info()
                     if (x.Props == null && x.GetType().GetMethod("Info") != null)
                     {
                         var ir = new InfoReturn(x);
@@ -780,7 +873,7 @@ namespace FuelSDK
             {
                 string requestID;
                 APIObject[] objectResults;
-                string overallStatus = client.SoapClient.Retrieve(o[0], out requestID, out objectResults);
+                var overallStatus = client.SoapClient.Retrieve(o[0], out requestID, out objectResults);
                 return new ExecuteAPIResponse<APIObject>(objectResults, requestID, overallStatus) { OverallStatusMessage = overallStatus };
             }, objs);
             if (response != null)
@@ -884,7 +977,7 @@ namespace FuelSDK
     public class ET_List : List
     {
         internal string FolderMediaType = "list";
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         public PostReturn Post() { return new PostReturn(this); }
         public PatchReturn Patch() { return new PatchReturn(this); }
         public DeleteReturn Delete() { return new DeleteReturn(this); }
@@ -927,7 +1020,7 @@ namespace FuelSDK
     public class ET_ContentArea : ContentArea
     {
         internal string FolderMediaType = "content";
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         public PostReturn Post() { return new PostReturn(this); }
         public PatchReturn Patch() { return new PatchReturn(this); }
         public DeleteReturn Delete() { return new DeleteReturn(this); }
@@ -939,7 +1032,7 @@ namespace FuelSDK
     public class ET_Email : Email
     {
         internal string FolderMediaType = "email";
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         public PostReturn Post() { return new PostReturn(this); }
         public PatchReturn Patch() { return new PatchReturn(this); }
         public DeleteReturn Delete() { return new DeleteReturn(this); }
@@ -952,7 +1045,7 @@ namespace FuelSDK
     {
         internal string FolderMediaType = "userinitiatedsends";
         internal string LastTaskID = string.Empty;
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         public PostReturn Post() { return new PostReturn(this); }
         public PatchReturn Patch() { return new PatchReturn(this); }
         public DeleteReturn Delete() { return new DeleteReturn(this); }
@@ -1018,7 +1111,7 @@ namespace FuelSDK
     public class ET_DataExtension : DataExtension
     {
         internal string FolderMediaType = "dataextension";
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         public ET_DataExtensionColumn[] Columns { get; set; }
         public PostReturn Post()
         {
@@ -1095,6 +1188,8 @@ namespace FuelSDK
         }
         public PostReturn Post()
         {
+            if (ColumnValues == null)
+                throw new ArgumentNullException("ColumnValues");
             GetDataExtensionCustomerKey();
             ET_DataExtensionRow row = this;
             row.CustomerKey = DataExtensionCustomerKey;
@@ -1106,6 +1201,8 @@ namespace FuelSDK
         }
         public PatchReturn Patch()
         {
+            if (ColumnValues == null)
+                throw new ArgumentNullException("ColumnValues");
             GetDataExtensionCustomerKey();
             ET_DataExtensionRow row = this;
             row.CustomerKey = DataExtensionCustomerKey;
@@ -1120,8 +1217,8 @@ namespace FuelSDK
             GetDataExtensionCustomerKey();
             ET_DataExtensionRow row = this;
             row.CustomerKey = DataExtensionCustomerKey;
+            row.Keys = (ColumnValues != null ? ColumnValues.Select(x => new APIProperty { Name = x.Key, Value = x.Value }).ToArray() : null);
             row.ColumnValues = null;
-            row.Keys = ColumnValues.Select(x => new APIProperty { Name = x.Key, Value = x.Value }).ToArray();
             row.DataExtensionName = null;
             row.DataExtensionCustomerKey = null;
             return new DeleteReturn(row);
@@ -1195,7 +1292,7 @@ namespace FuelSDK
 
     public class ET_TriggeredSend : TriggeredSendDefinition
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "triggered_send";
         public ET_Subscriber[] Subscribers { get; set; }
         public SendReturn Send()
@@ -1242,7 +1339,7 @@ namespace FuelSDK
 
     public class ET_OpenEvent : OpenEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
+        public bool GetSinceLastBatch { get; set; }
         public ET_OpenEvent() { GetSinceLastBatch = true; }
         public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
         public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
@@ -1251,7 +1348,7 @@ namespace FuelSDK
 
     public class ET_BounceEvent : BounceEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
+        public bool GetSinceLastBatch { get; set; }
         public ET_BounceEvent() { GetSinceLastBatch = true; }
         public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
         public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
@@ -1260,7 +1357,7 @@ namespace FuelSDK
 
     public class ET_ClickEvent : ClickEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
+        public bool GetSinceLastBatch { get; set; }
         public ET_ClickEvent() { GetSinceLastBatch = true; }
         public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
         public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
@@ -1269,7 +1366,7 @@ namespace FuelSDK
 
     public class ET_UnsubEvent : UnsubEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
+        public bool GetSinceLastBatch { get; set; }
         public ET_UnsubEvent() { GetSinceLastBatch = true; }
         public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
         public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
@@ -1278,7 +1375,7 @@ namespace FuelSDK
 
     public class ET_SentEvent : SentEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
+        public bool GetSinceLastBatch { get; set; }
         public ET_SentEvent() { GetSinceLastBatch = true; }
         public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
         public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
@@ -1295,12 +1392,12 @@ namespace FuelSDK
         public string Description { get; set; }
         public string CampaignCode { get; set; }
         public string Color { get; set; }
-        public bool Favorite { get; set; }
+        public bool? Favorite { get; set; }
         public ET_Campaign()
         {
             Endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{ID}";
-            URLProperties = new string[] { "ID" };
-            RequiredURLProperties = new string[] { };
+            URLProperties = new[] { "ID" };
+            RequiredURLProperties = new string[0];
         }
         public ET_Campaign(JObject obj)
         {
@@ -1336,8 +1433,8 @@ namespace FuelSDK
         public ET_CampaignAsset()
         {
             Endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{CampaignID}/assets/{ID}";
-            URLProperties = new string[] { "CampaignID", "ID" };
-            RequiredURLProperties = new string[] { "CampaignID" };
+            URLProperties = new[] { "CampaignID", "ID" };
+            RequiredURLProperties = new[] { "CampaignID" };
         }
         public ET_CampaignAsset(JObject obj)
         {
@@ -1365,8 +1462,8 @@ namespace FuelSDK
         public ET_Endpoint()
         {
             Endpoint = "https://www.exacttargetapis.com/platform/v1/endpoints/{Type}";
-            URLProperties = new string[] { "Type" };
-            RequiredURLProperties = new string[] { };
+            URLProperties = new[] { "Type" };
+            RequiredURLProperties = new string[0];
         }
         public ET_Endpoint(JObject obj)
         {
