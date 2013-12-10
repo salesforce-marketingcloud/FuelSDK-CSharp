@@ -1162,7 +1162,27 @@ namespace FuelSDK
                 object returnObject = (object)Activator.CreateInstance(translator[inputObject.GetType()]);
                 foreach (PropertyInfo prop in inputObject.GetType().GetProperties())
                 {
-                    if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
+					if (translator.ContainsKey(prop.PropertyType) && prop.GetValue(inputObject, null) != null) {
+						prop.SetValue(returnObject, this.TranslateObject(prop.GetValue(inputObject, null)), null);
+					} else if (prop.PropertyType.IsArray && prop.GetValue(inputObject, null) != null) {
+						Array a = (Array)prop.GetValue(inputObject, null);
+						Array outArray;
+
+						if (a.Length > 0) {
+							if (translator.ContainsKey(a.GetValue(0).GetType())) {
+								outArray = Array.CreateInstance(translator[a.GetValue(0).GetType()], a.Length);
+
+								for (int i = 0; i < a.Length; i++) {
+									if (translator.ContainsKey(a.GetValue(i).GetType())) {
+										outArray.SetValue(TranslateObject(a.GetValue(i)), i);
+									}
+								}
+								if (outArray.Length > 0) {
+									prop.SetValue(returnObject, outArray, null);
+								}
+							}
+						}
+					}else if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
                     {
                         prop.SetValue(returnObject, prop.GetValue(inputObject, null), null);
                     }
@@ -1590,12 +1610,12 @@ namespace FuelSDK
 
         public FuelSDK.SendReturn Send()
         {
-            ET_Trigger ts = new ET_Trigger();
-            ts.CustomerKey = this.CustomerKey;
-            ts.TriggeredSendDefinition = this;
-            ts.Subscribers = this.Subscribers;
-            ((ET_TriggeredSend)ts.TriggeredSendDefinition).Subscribers = null;
-            ts.AuthStub = this.AuthStub;
+			var ts = new ET_Trigger();
+			ts.TriggeredSendDefinition = new ET_TriggeredSend();
+	        ts.TriggeredSendDefinition.CustomerKey = this.CustomerKey;
+	        ts.CustomerKey = this.CustomerKey;
+	        ts.Subscribers = Subscribers;
+	        ts.AuthStub = this.AuthStub;
 
             return new FuelSDK.SendReturn(ts);
         }
