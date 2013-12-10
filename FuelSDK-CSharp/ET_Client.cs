@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Reflection;
@@ -31,19 +32,28 @@ namespace FuelSDK
         public string SDKVersion = "FuelSDX-C#-V.8";
 
         //Constructor
-        public ET_Client(NameValueCollection parameters = null)
+        public ET_Client(NameValueCollection parameters = null, bool useAppSettings = false)
         {
-            //Get configuration file and set variables
-            System.Xml.XPath.XPathDocument doc = new System.Xml.XPath.XPathDocument(@"FuelSDK_config.xml");
-            foreach (System.Xml.XPath.XPathNavigator child in doc.CreateNavigator().Select("configuration"))
-            {
-                appSignature = child.SelectSingleNode("appSignature").Value.ToString().Trim();
-                clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
-                clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
-                soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
-            }         
-
-            //If JWT URL Parameter Used
+			if (useAppSettings)
+	        {
+		        appSignature = ConfigurationManager.AppSettings["FuelSDK.appSignature"];
+		        clientId = ConfigurationManager.AppSettings["FuelSDK.clientId"];
+		        clientSecret = ConfigurationManager.AppSettings["FuelSDK.clientSecret"];
+		        soapEndPoint = ConfigurationManager.AppSettings["FuelSDK.soapEndPoint"];
+	        }
+	        else
+	        {
+		        //Get configuration file and set variables
+		        System.Xml.XPath.XPathDocument doc = new System.Xml.XPath.XPathDocument(@"FuelSDK_config.xml");
+		        foreach (System.Xml.XPath.XPathNavigator child in doc.CreateNavigator().Select("configuration"))
+		        {
+			        appSignature = child.SelectSingleNode("appSignature").Value.ToString().Trim();
+			        clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
+			        clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
+			        soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
+		        }
+	        }
+	        //If JWT URL Parameter Used
             if (parameters != null && parameters.AllKeys.Contains("jwt"))
             {
                 string encodedJWT = parameters["jwt"].ToString().Trim();
