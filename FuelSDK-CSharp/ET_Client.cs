@@ -1,204 +1,657 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Configuration;
+using System.IO;
 using System.Linq;
-using System.Text;
+using System.Net;
 using System.Reflection;
 using System.ServiceModel;
-using System.Collections.Specialized;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net;
-using System.IO;
-using System.Xml.Linq;
 using System.ServiceModel.Channels;
-
-
+using System.Xml.Linq;
+using System.Xml.Serialization;
+using System.Xml.XPath;
 
 namespace FuelSDK
 {
+    #region Configuration
+
+    public class FuelSDKConfigurationSection : ConfigurationSection
+    {
+        [ConfigurationProperty("appSignature", IsRequired = true)]
+        public string AppSignature
+        {
+            get { return (string)this["appSignature"]; }
+            set { this["appSignature"] = value; }
+        }
+
+        [ConfigurationProperty("clientId", IsRequired = true)]
+        public string ClientId
+        {
+            get { return (string)this["clientId"]; }
+            set { this["clientId"] = value; }
+        }
+
+        [ConfigurationProperty("clientSecret", IsRequired = true)]
+        public string ClientSecret
+        {
+            get { return (string)this["clientSecret"]; }
+            set { this["clientSecret"] = value; }
+        }
+
+        [ConfigurationProperty("soapEndPoint", DefaultValue = "https://webservice.s4.exacttarget.com/Service.asmx")]
+        public string SoapEndPoint
+        {
+            get { return (string)this["soapEndPoint"]; }
+            set { this["soapEndPoint"] = value; }
+        }
+
+        public object Clone()
+        {
+            return MemberwiseClone();
+        }
+
+        public override bool IsReadOnly()
+        {
+            return false;
+        }
+    }
+
+    #endregion
+
+    #region ET-Client
+
     public class ET_Client
     {
-        //Variables
-        public string authToken;
-        public SoapClient soapclient;
-        private string appSignature = string.Empty;
-        private string clientId = string.Empty;
-        private string clientSecret = string.Empty;
-        private string soapEndPoint = string.Empty;
-        public string internalAuthToken = string.Empty;
-        private string refreshKey = string.Empty;
-        private DateTime authTokenExpiration = DateTime.Now;
-        public string SDKVersion = "FuelSDX-C#-V.8";
+        public const string SDKVersion = "FuelSDX-C#-V.8";
+        private FuelSDKConfigurationSection configSection;
+        public string AuthToken { get; private set; }
+        public SoapClient SoapClient { get; private set; }
+        public string InternalAuthToken { get; private set; }
+        public string RefreshKey { get; private set; }
+        public DateTime AuthTokenExpiration { get; private set; }
+        public JObject Jwt { get; private set; }
+        public string EnterpriseId { get; private set; }
+        public string OrganizationId { get; private set; }
+        public string Stack { get; private set; }
 
-        //Constructor
-        public ET_Client(NameValueCollection parameters = null)
+        public class RefreshState
         {
-            //Get configuration file and set variables
-            if (File.Exists(@"FuelSDK_config.xml"))
-            {
-                System.Xml.XPath.XPathDocument doc = new System.Xml.XPath.XPathDocument(@"FuelSDK_config.xml");
+            public string RefreshKey { get; set; }
+            public string EnterpriseId { get; set; }
+            public string OrganizationId { get; set; }
+            public string Stack { get; set; }
+        }
 
-                foreach (System.Xml.XPath.XPathNavigator child in doc.CreateNavigator().Select("configuration"))
-                {
-                    appSignature = child.SelectSingleNode("appSignature").Value.ToString().Trim();
-                    clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
-                    clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
-                    soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
-                }
-            }
-
+        public ET_Client(string jwt)
+            : this(new NameValueCollection { { "jwt", jwt } }, null) { }
+        public ET_Client(NameValueCollection parameters = null, RefreshState refreshState = null)
+        {
+            // Get configuration file and set variables
+            configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+            configSection = (configSection != null ? (FuelSDKConfigurationSection)configSection.Clone() : new FuelSDKConfigurationSection());
             if (parameters != null)
             {
                 if (parameters.AllKeys.Contains("appSignature"))
-                    appSignature = parameters["appSignature"];
+                    configSection.AppSignature = parameters["appSignature"];
                 if (parameters.AllKeys.Contains("clientId"))
-                    clientId = parameters["clientId"];
+                    configSection.ClientId = parameters["clientId"];
                 if (parameters.AllKeys.Contains("clientSecret"))
-                    clientSecret = parameters["clientSecret"];
+                    configSection.ClientSecret = parameters["clientSecret"];
                 if (parameters.AllKeys.Contains("soapEndPoint"))
-                    soapEndPoint = parameters["soapEndPoint"];
+                    configSection.SoapEndPoint = parameters["soapEndPoint"];
             }
 
-            if (clientId.Equals(string.Empty) || clientSecret.Equals(string.Empty))
+            if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ET_Client");
 
-            //If JWT URL Parameter Used
-            if (parameters != null && parameters.AllKeys.Contains("jwt"))
+            // If JWT URL Parameter Used
+            var organizationFind = false;
+            if (refreshState != null)
             {
-                if (appSignature.Equals(string.Empty))
+                RefreshKey = refreshState.RefreshKey;
+                EnterpriseId = refreshState.EnterpriseId;
+                OrganizationId = refreshState.OrganizationId;
+                Stack = refreshState.Stack;
+                RefreshToken();
+            }
+            else if (parameters != null && parameters.AllKeys.Contains("jwt") && !string.IsNullOrEmpty(parameters["jwt"]))
+            {
+                if (string.IsNullOrEmpty(configSection.AppSignature))
                     throw new Exception("Unable to utilize JWT for SSO without appSignature: Must be provided in config file or passed when instantiating ET_Client");
-                string encodedJWT = parameters["jwt"].ToString().Trim();
-                String decodedJWT = JsonWebToken.Decode(encodedJWT, appSignature);
-                JObject parsedJWT = JObject.Parse(decodedJWT);
-                authToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
-                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
-                internalAuthToken = parsedJWT["request"]["user"]["internalOauthToken"].Value<string>().Trim();
-                refreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
+                var encodedJWT = parameters["jwt"].ToString().Trim();
+                var decodedJWT = JsonWebToken.Decode(encodedJWT, configSection.AppSignature);
+                var parsedJWT = JObject.Parse(decodedJWT);
+                AuthToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
+                AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
+                InternalAuthToken = parsedJWT["request"]["user"]["internalOauthToken"].Value<string>().Trim();
+                RefreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
+                Jwt = parsedJWT;
+                var orgPart = parsedJWT["request"]["organization"];
+                if (orgPart != null)
+                {
+                    EnterpriseId = orgPart["enterpriseId"].Value<string>().Trim();
+                    OrganizationId = orgPart["id"].Value<string>().Trim();
+                    Stack = orgPart["stackKey"].Value<string>().Trim();
+                }
             }
             else
             {
-                refreshToken();
+                RefreshToken();
+                organizationFind = true;
             }
 
             // Find the appropriate endpoint for the acccount
-            ET_Endpoint getSingleEndpoint = new ET_Endpoint();
-            getSingleEndpoint.AuthStub = this;
-            getSingleEndpoint.Type = "soap";
-            GetReturn grSingleEndpoint = getSingleEndpoint.Get();
-
+            var grSingleEndpoint = new ET_Endpoint { AuthStub = this, Type = "soap" }.Get();
             if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
-            {
-                soapEndPoint = ((ET_Endpoint)grSingleEndpoint.Results[0]).URL;
-            }
+                configSection.SoapEndPoint = ((ET_Endpoint)grSingleEndpoint.Results[0]).URL;
             else
-            {
                 throw new Exception("Unable to determine stack using /platform/v1/endpoints: " + grSingleEndpoint.Message);
-            }
 
-            //Create the SOAP binding for call with Oauth.
-            BasicHttpBinding binding = new BasicHttpBinding();
-            binding.Name = "UserNameSoapBinding";
-            binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
-            binding.MaxReceivedMessageSize = 2147483647;
-            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));
-            soapclient.ClientCredentials.UserName.UserName = "*";
-            soapclient.ClientCredentials.UserName.Password = "*";
+            // Create the SOAP binding for call with Oauth.
+            SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
+            SoapClient.ClientCredentials.UserName.UserName = "*";
+            SoapClient.ClientCredentials.UserName.Password = "*";
 
-        }
-
-        public void refreshToken(bool force = false)
-        {
-            //RefreshToken
-            if ((authToken == null || authToken.Length == 0 || DateTime.Now.AddSeconds(300) > authTokenExpiration) || force)
-            {
-                //Get an internalAuthToken using clientId and clientSecret
-                string strURL = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1";
-
-                //Build the request
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
-                request.Method = "POST";
-                request.ContentType = "application/json";
-                request.UserAgent = this.SDKVersion;
-
-                string json;
-                using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            // Find Organization Information
+            if (organizationFind)
+                using (var scope = new OperationContextScope(SoapClient.InnerChannel))
                 {
+                    // Add oAuth token to SOAP header.
+                    XNamespace ns = "http://exacttarget.com";
+                    var oauthElement = new XElement(ns + "oAuthToken", InternalAuthToken);
+                    var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                    OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
-                    if (refreshKey.Length > 0)
-                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""refreshToken"": """ + refreshKey + @""", ""scope"": ""cas:" + internalAuthToken + @""" , ""accessType"": ""offline""}";
-                    else
-                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""accessType"": ""offline""}";
-                    streamWriter.Write(json);
+                    var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
+                    OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
+                    httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ET_Client.SDKVersion);
+
+                    string requestID;
+                    APIObject[] results;
+                    var r = SoapClient.Retrieve(new RetrieveRequest { ObjectType = "BusinessUnit", Properties = new[] { "ID", "Client.EnterpriseID" } }, out requestID, out results);
+                    if (r == "OK" && results.Length > 0)
+                    {
+                        EnterpriseId = results[0].Client.EnterpriseID.ToString();
+                        OrganizationId = results[0].ID.ToString();
+                        Stack = GetStackFromSoapEndPoint(new Uri(configSection.SoapEndPoint));
+                    }
                 }
-
-                //Get the response
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream dataStream = response.GetResponseStream();
-                StreamReader reader = new StreamReader(dataStream);
-                string responseFromServer = reader.ReadToEnd();
-                reader.Close();
-                dataStream.Close();
-                response.Close();
-
-                //Parse the response
-                JObject parsedResponse = JObject.Parse(responseFromServer);
-                internalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
-                authToken = parsedResponse["accessToken"].Value<string>().Trim();
-                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
-                refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
-            }
         }
 
-        public FuelReturn AddSubscribersToList(string EmailAddress, string SubscriberKey, List<int> ListIDs)
+        private string GetStackFromSoapEndPoint(Uri uri)
         {
-            return this.ProcessAddSubscriberToList(EmailAddress, SubscriberKey, ListIDs);
+            var parts = uri.Host.Split('.');
+            if (parts.Length < 2 || !parts[0].Equals("webservice", StringComparison.OrdinalIgnoreCase))
+                throw new Exception("not exacttarget.com");
+            return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
         }
 
-        public FuelReturn AddSubscribersToList(string EmailAddress, List<int> ListIDs)
+        private static Binding GetSoapBinding()
         {
-            return this.ProcessAddSubscriberToList(EmailAddress, null, ListIDs);
-        }
-
-        protected FuelReturn ProcessAddSubscriberToList(string EmailAddress, string SubscriberKey, List<int> ListIDs)
-        {
-            ET_Subscriber sub = new ET_Subscriber();
-            sub.EmailAddress = EmailAddress;
-            if (SubscriberKey != null)
-                sub.SubscriberKey = SubscriberKey;
-            List<ET_SubscriberList> lLists = new List<ET_SubscriberList>();
-            foreach (int listID in ListIDs)
+            //var binding = new BasicHttpBinding
+            //{
+            //    Name = "UserNameSoapBinding",
+            //    MaxReceivedMessageSize = 2147483647,
+            //};
+            //binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
+            return new CustomBinding(new BindingElementCollection
+            { 
+                SecurityBindingElement.CreateUserNameOverTransportBindingElement(), 
+                new TextMessageEncodingBindingElement
+                {
+                    MessageVersion = MessageVersion.Soap12WSAddressingAugust2004,
+                    ReaderQuotas =
+                    {
+                        MaxDepth = 32,
+                        MaxStringContentLength = int.MaxValue,
+                        MaxArrayLength = int.MaxValue,
+                        MaxBytesPerRead = int.MaxValue,
+                        MaxNameTableCharCount = int.MaxValue
+                    }
+                }, 
+                new HttpsTransportBindingElement
+                {
+                    TransferMode = TransferMode.Buffered,
+                    MaxReceivedMessageSize = 655360000,
+                    MaxBufferSize = 655360000,
+                    KeepAliveEnabled = true
+                } })
             {
-                ET_SubscriberList feList = new ET_SubscriberList();
-                feList.ID = listID;
-                lLists.Add(feList);
+                Name = "UserNameSoapBinding",
+                Namespace = "Core.Soap",
+                CloseTimeout = new TimeSpan(0, 50, 0),
+                OpenTimeout = new TimeSpan(0, 50, 0),
+                ReceiveTimeout = new TimeSpan(0, 50, 0),
+                SendTimeout = new TimeSpan(0, 50, 0)
+            };
+        }
+
+        public void RefreshToken(bool force = false)
+        {
+            // RefreshToken
+            if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
+                return;
+
+            // Get an internalAuthToken using clientId and clientSecret
+            var strURL = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1";
+
+            // Build the request
+            var request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.UserAgent = SDKVersion;
+
+            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            {
+                string json;
+                if (!string.IsNullOrEmpty(RefreshKey))
+                    json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"refreshToken\": \"{2}\", \"scope\": \"cas:{3}\" , \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret, RefreshKey, InternalAuthToken);
+                else
+                    json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret);
+                streamWriter.Write(json);
             }
-            sub.AuthStub = this;
-            sub.Lists = lLists.ToArray();
-            PostReturn prAddSub = sub.Post();
+
+            // Get the response
+            string responseFromServer = null;
+            using (var response = (HttpWebResponse)request.GetResponse())
+            using (var dataStream = response.GetResponseStream())
+            using (var reader = new StreamReader(dataStream))
+                responseFromServer = reader.ReadToEnd();
+
+            // Parse the response
+            var parsedResponse = JObject.Parse(responseFromServer);
+            InternalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
+            AuthToken = parsedResponse["accessToken"].Value<string>().Trim();
+            AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
+            RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
+        }
+
+        public FuelReturn AddSubscribersToList(string emailAddress, string subscriberKey, IEnumerable<int> listIDs) { return ProcessAddSubscriberToList(emailAddress, subscriberKey, listIDs); }
+        public FuelReturn AddSubscribersToList(string emailAddress, IEnumerable<int> listIDs) { return ProcessAddSubscriberToList(emailAddress, null, listIDs); }
+        protected FuelReturn ProcessAddSubscriberToList(string emailAddress, string subscriberKey, IEnumerable<int> listIDs)
+        {
+            var sub = new ET_Subscriber
+            {
+                AuthStub = this,
+                EmailAddress = emailAddress,
+                Lists = listIDs.Select(x => new ET_SubscriberList { ID = x }).ToArray(),
+            };
+            if (subscriberKey != null)
+                sub.SubscriberKey = subscriberKey;
+            var prAddSub = sub.Post();
             if (!prAddSub.Status && prAddSub.Results.Length > 0 && prAddSub.Results[0].ErrorCode == 12014)
-            {
                 return sub.Patch();
-            }
-            else
-            {
-                return prAddSub;
-            }
+            return prAddSub;
         }
 
-        public FuelReturn CreateDataExtensions(ET_DataExtension[] ArrayOfET_DataExtension)
+        public FuelReturn CreateDataExtensions(ET_DataExtension[] dataExtensions)
         {
-
-            List<ET_DataExtension> cleanedArray = new List<ET_DataExtension>();
-
-            foreach (ET_DataExtension de in ArrayOfET_DataExtension)
+            var cleanedArray = new List<ET_DataExtension>();
+            foreach (var de in dataExtensions)
             {
+                de.AuthStub = this;
                 de.Fields = de.Columns;
                 de.Columns = null;
                 cleanedArray.Add(de);
             }
-            return new PostReturn(cleanedArray.ToArray(), this);
+            return new PostReturn(cleanedArray.ToArray());
+        }
+    }
+
+    #endregion
+
+    #region Primitives
+
+    public partial class APIObject
+    {
+        [XmlIgnore, JsonIgnore]
+        public ET_Client AuthStub { get; set; }
+        [XmlIgnore]
+        public string[] Props { get; set; }
+        [XmlIgnore]
+        public FilterPart SearchFilter { get; set; }
+        [XmlIgnore]
+        public string LastRequestID { get; set; }
+        [XmlElementAttribute(Order = 10000), JsonIgnore]
+        public string DirectoryPath { get; set; }
+        [XmlIgnore, JsonIgnore]
+        public string UniqueID
+        {
+            get
+            {
+                if (ID > 0) return ID.ToString();
+                if (!string.IsNullOrEmpty(ObjectID)) return ObjectID;
+                if (!string.IsNullOrEmpty(CustomerKey)) return CustomerKey;
+                throw new InvalidOperationException("Unable to generate UniqueID");
+            }
+        }
+    }
+
+    public class FuelObject : APIObject
+    {
+        [JsonIgnore]
+        public string Endpoint { get; set; }
+        public string[] URLProperties { get; set; }
+        public string[] RequiredURLProperties { get; set; }
+        public int? Page { get; set; }
+        protected string CleanRestValue(JToken obj) { return obj.ToString().Replace("\"", "").Trim(); }
+    }
+
+    public abstract class FuelReturn
+    {
+        public bool Status { get; set; }
+        public string Message { get; set; }
+        public bool MoreResults { get; set; }
+        public int Code { get; set; }
+        public string RequestID { get; set; }
+
+        private Dictionary<Type, Type> _translators = new Dictionary<Type, Type>();
+
+        public FuelReturn()
+        {
+            _translators.Add(typeof(ET_Folder), typeof(DataFolder));
+            _translators.Add(typeof(DataFolder), typeof(ET_Folder));
+
+            _translators.Add(typeof(ET_List), typeof(List));
+            _translators.Add(typeof(List), typeof(ET_List));
+
+            _translators.Add(typeof(ET_ContentArea), typeof(ContentArea));
+            _translators.Add(typeof(ContentArea), typeof(ET_ContentArea));
+
+            _translators.Add(typeof(ET_ObjectDefinition), typeof(ObjectDefinition));
+            _translators.Add(typeof(ObjectDefinition), typeof(ET_ObjectDefinition));
+
+            _translators.Add(typeof(ET_PropertyDefinition), typeof(PropertyDefinition));
+            _translators.Add(typeof(PropertyDefinition), typeof(ET_PropertyDefinition));
+
+            _translators.Add(typeof(Subscriber), typeof(ET_Subscriber));
+            _translators.Add(typeof(ET_Subscriber), typeof(Subscriber));
+
+            _translators.Add(typeof(ET_ProfileAttribute), typeof(Attribute));
+            _translators.Add(typeof(Attribute), typeof(ET_ProfileAttribute));
+
+            _translators.Add(typeof(ET_Email), typeof(Email));
+            _translators.Add(typeof(Email), typeof(ET_Email));
+
+            _translators.Add(typeof(ET_SubscriberList), typeof(SubscriberList));
+            _translators.Add(typeof(SubscriberList), typeof(ET_SubscriberList));
+
+            _translators.Add(typeof(ET_List_Subscriber), typeof(ListSubscriber));
+            _translators.Add(typeof(ListSubscriber), typeof(ET_List_Subscriber));
+
+            _translators.Add(typeof(ET_DataExtension), typeof(DataExtension));
+            _translators.Add(typeof(DataExtension), typeof(ET_DataExtension));
+
+            _translators.Add(typeof(ET_DataExtensionColumn), typeof(DataExtensionField));
+            _translators.Add(typeof(DataExtensionField), typeof(ET_DataExtensionColumn));
+
+            _translators.Add(typeof(ET_DataExtensionRow), typeof(DataExtensionObject));
+            _translators.Add(typeof(DataExtensionObject), typeof(ET_DataExtensionRow));
+
+            _translators.Add(typeof(ET_SendClassification), typeof(SendClassification));
+            _translators.Add(typeof(SendClassification), typeof(ET_SendClassification));
+
+            _translators.Add(typeof(ET_SendDefinitionList), typeof(SendDefinitionList));
+            _translators.Add(typeof(SendDefinitionList), typeof(ET_SendDefinitionList));
+
+            _translators.Add(typeof(ET_SenderProfile), typeof(SenderProfile));
+            _translators.Add(typeof(SenderProfile), typeof(ET_SenderProfile));
+
+            _translators.Add(typeof(ET_DeliveryProfile), typeof(DeliveryProfile));
+            _translators.Add(typeof(DeliveryProfile), typeof(ET_DeliveryProfile));
+
+            _translators.Add(typeof(ET_TriggeredSend), typeof(TriggeredSendDefinition));
+            _translators.Add(typeof(TriggeredSendDefinition), typeof(ET_TriggeredSend));
+
+            _translators.Add(typeof(ET_EmailSendDefinition), typeof(EmailSendDefinition));
+            _translators.Add(typeof(EmailSendDefinition), typeof(ET_EmailSendDefinition));
+
+            _translators.Add(typeof(ET_QueryDefinition), typeof(QueryDefinition));
+            _translators.Add(typeof(QueryDefinition), typeof(ET_QueryDefinition));
+
+            _translators.Add(typeof(ET_Send), typeof(Send));
+            _translators.Add(typeof(Send), typeof(ET_Send));
+
+            _translators.Add(typeof(ET_Import), typeof(ImportDefinition));
+            _translators.Add(typeof(ImportDefinition), typeof(ET_Import));
+
+            _translators.Add(typeof(ET_ImportResult), typeof(ImportResultsSummary));
+            _translators.Add(typeof(ImportResultsSummary), typeof(ET_ImportResult));
+
+            // The translation for this is handled in the Get() method for DataExtensionObject so no need to translate it
+            _translators.Add(typeof(APIProperty), typeof(APIProperty));
+
+            _translators.Add(typeof(ET_Trigger), typeof(TriggeredSend));
+            _translators.Add(typeof(TriggeredSend), typeof(ET_Trigger));
+
+            // Tracking Events
+            _translators.Add(typeof(ET_BounceEvent), typeof(BounceEvent));
+            _translators.Add(typeof(BounceEvent), typeof(ET_BounceEvent));
+            _translators.Add(typeof(OpenEvent), typeof(ET_OpenEvent));
+            _translators.Add(typeof(ET_OpenEvent), typeof(OpenEvent));
+            _translators.Add(typeof(ET_ClickEvent), typeof(ClickEvent));
+            _translators.Add(typeof(ClickEvent), typeof(ET_ClickEvent));
+            _translators.Add(typeof(ET_UnsubEvent), typeof(UnsubEvent));
+            _translators.Add(typeof(UnsubEvent), typeof(ET_UnsubEvent));
+            _translators.Add(typeof(ET_SentEvent), typeof(SentEvent));
+            _translators.Add(typeof(SentEvent), typeof(ET_SentEvent));
         }
 
+        public APIObject TranslateObject(APIObject inputObject)
+        {
+            if (_translators.ContainsKey(inputObject.GetType()))
+            {
+                var returnObject = (APIObject)Activator.CreateInstance(_translators[inputObject.GetType()]);
+                foreach (var prop in inputObject.GetType().GetProperties())
+                {
+                    if (prop.Name == "UniqueID")
+                        continue;
+                    var propValue = prop.GetValue(inputObject, null);
+                    if ((prop.PropertyType.IsSubclassOf(typeof(APIObject)) || prop.PropertyType == typeof(APIObject)) && propValue != null)
+                        prop.SetValue(returnObject, TranslateObject(propValue), null);
+                    else if (_translators.ContainsKey(prop.PropertyType) && propValue != null)
+                        prop.SetValue(returnObject, TranslateObject(propValue), null);
+                    else if (prop.PropertyType.IsArray && propValue != null)
+                    {
+                        var a = (Array)propValue;
+                        Array outArray;
+                        if (a.Length > 0)
+                            if (_translators.ContainsKey(a.GetValue(0).GetType()))
+                            {
+                                outArray = Array.CreateInstance(_translators[a.GetValue(0).GetType()], a.Length);
+                                for (int i = 0; i < a.Length; i++)
+                                    if (_translators.ContainsKey(a.GetValue(i).GetType()))
+                                        outArray.SetValue(TranslateObject(a.GetValue(i)), i);
+                                if (outArray.Length > 0)
+                                    prop.SetValue(returnObject, outArray, null);
+                            }
+                    }
+                    else if (prop.Name == "FolderID" && propValue != null)
+                    {
+                        if (inputObject.GetType().GetProperty("Category") != null)
+                        {
+                            var categoryIDProp = inputObject.GetType().GetProperty("Category");
+                            categoryIDProp.SetValue(returnObject, propValue, null);
+                        }
+                        else if (inputObject.GetType().GetProperty("CategoryID") != null)
+                        {
+                            var categoryIDProp = inputObject.GetType().GetProperty("CategoryID");
+                            categoryIDProp.SetValue(returnObject, propValue, null);
+                        }
+                    }
+                    else if ((prop.Name == "CategoryIDSpecified" || prop.Name == "CategorySpecified") && propValue != null)
+                    {
+                        // Do nothing
+                    }
+                    else if ((prop.Name == "CategoryID" || prop.Name == "Category") && propValue != null)
+                    {
+                        if (returnObject.GetType().GetProperty("FolderID") != null)
+                        {
+                            var folderIDProp = returnObject.GetType().GetProperty("FolderID");
+                            folderIDProp.SetValue(returnObject, Convert.ToInt32(propValue), null);
+                        }
+                    }
+                    else if (propValue != null && returnObject.GetType().GetProperty(prop.Name) != null)
+                        prop.SetValue(returnObject, propValue, null);
+                }
+                return returnObject;
+            }
+            return inputObject;
+        }
+
+        protected object TranslateObject(object inputObject)
+        {
+            if (_translators.ContainsKey(inputObject.GetType()))
+            {
+                var returnObject = (object)Activator.CreateInstance(_translators[inputObject.GetType()]);
+                foreach (var prop in inputObject.GetType().GetProperties())
+                {
+                    if (prop.Name == "UniqueID")
+                        continue;
+                    if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
+                        prop.SetValue(returnObject, prop.GetValue(inputObject, null), null);
+                }
+                return returnObject;
+            }
+            return inputObject;
+        }
+
+        public class ExecuteAPIResponse<TResult>
+        {
+            public TResult[] Results { get; set; }
+            public string RequestID { get; set; }
+            public string OverallStatus { get; set; }
+            public string OverallStatusMessage { get; set; }
+
+            public ExecuteAPIResponse(TResult[] results, string requestID, string overallStatus)
+            {
+                Results = results;
+                RequestID = requestID;
+                OverallStatus = overallStatus;
+            }
+        }
+
+        protected TResult[] ExecuteAPI<TResult>(Func<ET_Client, APIObject[], ExecuteAPIResponse<TResult>> func, params APIObject[] objs) { return ExecuteAPI<TResult, APIObject>(TranslateObject, func, objs); }
+        protected TResult[] ExecuteAPI<TResult, TObject>(Func<APIObject, TObject> select, Func<ET_Client, TObject[], ExecuteAPIResponse<TResult>> func, params APIObject[] objs)
+        {
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var client = objs.Select(x => x.AuthStub).FirstOrDefault();
+            if (client == null)
+                throw new InvalidOperationException("client");
+            client.RefreshToken();
+            using (var scope = new OperationContextScope(client.SoapClient.InnerChannel))
+            {
+                // Add oAuth token to SOAP header.
+                XNamespace ns = "http://exacttarget.com";
+                var oauthElement = new XElement(ns + "oAuthToken", client.InternalAuthToken);
+                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+
+                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
+                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ET_Client.SDKVersion);
+
+                var response = func(client, objs.Select(select).ToArray());
+                RequestID = response.RequestID;
+                Status = (response.OverallStatus == "OK" || response.OverallStatus == "MoreDataAvailable");
+                Code = (Status ? 200 : 0);
+                MoreResults = (response.OverallStatus == "MoreDataAvailable");
+                Message = (response.OverallStatusMessage ?? string.Empty);
+
+                string r;
+                APIObject[] a;
+                var d = client.SoapClient.Retrieve(
+                    new RetrieveRequest
+                    {
+                        ObjectType = "BusinessUnit",
+                        Properties = new[] { "ID", "Name" }
+                    }, out r, out a
+                );
+
+                return response.Results;
+            }
+        }
+
+        protected string ExecuteFuel(FuelObject obj, string[] required, string method, bool postValue)
+        {
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+            obj.AuthStub.RefreshToken();
+
+            object propValue;
+            string propValueAsString;
+            var completeURL = obj.Endpoint;
+            if (required != null)
+                foreach (string urlProp in required)
+                {
+                    var match = false;
+                    foreach (var prop in obj.GetType().GetProperties())
+                    {
+                        if (prop.Name == "UniqueID")
+                            continue;
+                        if (obj.URLProperties.Contains(prop.Name) && (propValue = prop.GetValue(obj, null)) != null)
+                            if ((propValueAsString = propValue.ToString().Trim()).Length > 0 && propValueAsString != "0")
+                                match = true;
+                    }
+                    if (!match)
+                        throw new Exception("Unable to process request due to missing required property: " + urlProp);
+                }
+            foreach (var prop in obj.GetType().GetProperties())
+            {
+                if (prop.Name == "UniqueID")
+                    continue;
+                if (obj.URLProperties.Contains(prop.Name) && (propValue = prop.GetValue(obj, null)) != null)
+                    if ((propValueAsString = propValue.ToString().Trim()).Length > 0 && propValueAsString != "0")
+                        completeURL = completeURL.Replace("{" + prop.Name + "}", propValueAsString);
+            }
+
+            // Clean up not required URL parameters
+            if (obj.URLProperties != null)
+                foreach (string urlProp in obj.URLProperties)
+                    completeURL = completeURL.Replace("{" + urlProp + "}", string.Empty);
+
+            completeURL += "?access_token=" + obj.AuthStub.AuthToken;
+            if (obj.Page != 0)
+                completeURL += "&page=" + obj.Page.ToString();
+
+            var request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
+            request.Method = method;
+            request.ContentType = "application/json";
+            request.UserAgent = ET_Client.SDKVersion;
+
+            if (postValue)
+                using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+                    streamWriter.Write(JsonConvert.SerializeObject(obj));
+
+            // Get the response
+            try
+            {
+                using (var response = (HttpWebResponse)request.GetResponse())
+                using (var dataStream = response.GetResponseStream())
+                using (var reader = new StreamReader(dataStream))
+                {
+                    Code = (int)response.StatusCode;
+                    Status = (response.StatusCode == HttpStatusCode.OK);
+                    MoreResults = false;
+                    Message = (Status ? string.Empty : response.ToString());
+                    return (Status ? reader.ReadToEnd() : null);
+                }
+            }
+            catch (WebException we)
+            {
+                Code = (int)((HttpWebResponse)we.Response).StatusCode;
+                Status = false;
+                MoreResults = false;
+                using (var stream = we.Response.GetResponseStream())
+                using (var reader = new StreamReader(stream))
+                    Message = reader.ReadToEnd();
+                return null;
+            }
+        }
     }
 
     public class ResultDetail
@@ -210,339 +663,95 @@ namespace FuelSDK
         public int NewID { get; set; }
         public string NewObjectID { get; set; }
         public APIObject Object { get; set; }
-        public TaskResult Task {get;set; }        
+        public TaskResult Task { get; set; }
     }
 
     public class PostReturn : FuelReturn
     {
         public ResultDetail[] Results { get; set; }
 
-        public PostReturn(APIObject[] theObjects, ET_Client theClient)
+        public PostReturn(params APIObject[] objs)
         {
-            this.Message = "";
-            this.Status = true;
-            this.MoreResults = false;
-            string OverallStatus = string.Empty, RequestID = string.Empty;
-            Result[] requestResults = new Result[0];
-
-            theClient.refreshToken();
-            using (var scope = new OperationContextScope(theClient.soapclient.InnerChannel))
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var response = ExecuteAPI((client, o) =>
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theClient.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theClient.SDKVersion);
-
-                List<APIObject> lObjects = new List<APIObject>();
-                foreach (APIObject ao in theObjects)
-                {
-                    lObjects.Add(this.TranslateObject(ao));
-                }
-
-                requestResults = theClient.soapclient.Create(new CreateOptions(), lObjects.ToArray(), out RequestID, out OverallStatus);
-
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = "";
-
-                if (OverallStatus != "OK")
-                {
-                    this.Status = false;
-                }
-
-                if (requestResults.GetType() == typeof(CreateResult[]) && requestResults.Length > 0)
-                {
-                    List<ResultDetail> results = new List<ResultDetail>();
-                    foreach (CreateResult cr in requestResults)
+                string requestID;
+                string overallStatus;
+                return new ExecuteAPIResponse<CreateResult>(client.SoapClient.Create(new CreateOptions(), o, out requestID, out overallStatus), requestID, overallStatus);
+            }, objs);
+            if (response != null)
+                if (response.GetType() == typeof(CreateResult[]) && response.Length > 0)
+                    Results = response.Cast<CreateResult>().Select(x => new ResultDetail
                     {
-                        ResultDetail detail = new ResultDetail();
-                        if (cr.StatusCode != null)
-                            detail.StatusCode = cr.StatusCode;
-                        if (cr.StatusMessage != null)
-                            detail.StatusMessage = cr.StatusMessage;
-                        if (cr.NewObjectID != null)
-                            detail.NewObjectID = cr.NewObjectID;
-                        if (cr.Object != null)
-                            detail.Object = this.TranslateObject(cr.Object);
-                        detail.OrdinalID = cr.OrdinalID;
-                        detail.ErrorCode = cr.ErrorCode;
-                        detail.NewID = cr.NewID;
-                        results.Add(detail);
-                    }
-                    this.Results = results.ToArray();
-                }
-            }
+                        StatusCode = x.StatusCode,
+                        StatusMessage = x.StatusMessage,
+                        NewObjectID = x.NewObjectID,
+                        Object = (x.Object != null ? TranslateObject(x.Object) : null),
+                        OrdinalID = x.OrdinalID,
+                        ErrorCode = x.ErrorCode,
+                        NewID = x.NewID,
+                    }).ToArray();
+                else
+                    Results = new ResultDetail[0];
         }
 
-        public PostReturn(APIObject theObject)
+        public PostReturn(FuelObject obj)
         {
-            this.Message = "";
-            this.Status = true;
-            this.MoreResults = false;
-            string OverallStatus = string.Empty, RequestID = string.Empty;
-            Result[] requestResults = new Result[0];
-
-            theObject.AuthStub.refreshToken();
-            using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+            var response = ExecuteFuel(obj, obj.RequiredURLProperties, "POST", true);
+            if (string.IsNullOrEmpty(response))
+                Results = new ResultDetail[0];
+            else if (response.StartsWith("["))
+                Results = JArray.Parse(response)
+                    .Select(x => new ResultDetail { Object = (APIObject)Activator.CreateInstance(obj.GetType(), BindingFlags.Public | BindingFlags.Instance, null, new object[] { x }, null) }).ToArray();
+            else
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
-
-                theObject = this.TranslateObject(theObject);
-
-                requestResults = theObject.AuthStub.soapclient.Create(new CreateOptions(), new APIObject[] { theObject }, out RequestID, out OverallStatus);
-
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = "";
-
-                if (OverallStatus != "OK")
-                {
-                    this.Status = false;
-                }
-
-                if (requestResults.GetType() == typeof(CreateResult[]) && requestResults.Length > 0)
-                {
-                    List<ResultDetail> results = new List<ResultDetail>();
-                    foreach (CreateResult cr in requestResults)
-                    {
-                        ResultDetail detail = new ResultDetail();
-                        if (cr.StatusCode != null)
-                            detail.StatusCode = cr.StatusCode;
-                        if (cr.StatusMessage != null)
-                            detail.StatusMessage = cr.StatusMessage;
-                        if (cr.NewObjectID != null)
-                            detail.NewObjectID = cr.NewObjectID;
-                        if (cr.Object != null)
-                            detail.Object = this.TranslateObject(cr.Object);
-                        detail.OrdinalID = cr.OrdinalID;
-                        detail.ErrorCode = cr.ErrorCode;
-                        detail.NewID = cr.NewID;
-                        results.Add(detail);
-                    }
-                    this.Results = results.ToArray();
-                }
+                var x = JObject.Parse(response);
+                Results = new[] { new ResultDetail { Object = (APIObject)Activator.CreateInstance(obj.GetType(), BindingFlags.Public | BindingFlags.Instance, null, new object[] { x }, null) } };
             }
         }
-
-        public PostReturn(FuelObject theObject)
-        {
-            this.Message = "";
-            this.Status = true;
-            this.MoreResults = false;
-            string completeURL = theObject.Endpoint;
-            string additionalQS;
-
-            theObject.AuthStub.refreshToken();
-
-            foreach (PropertyInfo prop in theObject.GetType().GetProperties())
-            {
-                if (theObject.URLProperties.Contains(prop.Name) && prop.GetValue(theObject, null) != null)
-                    if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                        completeURL = completeURL.Replace("{" + prop.Name + "}", prop.GetValue(theObject, null).ToString());
-            }
-
-            bool match;
-            if (theObject.RequiredURLProperties != null)
-            {
-                foreach (string urlProp in theObject.RequiredURLProperties)
-                {
-                    match = false;
-
-                    foreach (PropertyInfo prop in theObject.GetType().GetProperties())
-                    {
-                        if (theObject.URLProperties.Contains(prop.Name))
-                            if (prop.GetValue(theObject, null) != null)
-                            {
-                                if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                                    match = true;
-                            }
-                    }
-                    if (match == false)
-                        throw new Exception("Unable to process request due to missing required property: " + urlProp);
-
-                }
-            }
-
-            // Clean up not required URL parameters
-            int j = 0;
-            if (theObject.URLProperties != null)
-            {
-                foreach (string urlProp in theObject.URLProperties)
-                {
-                    completeURL = completeURL.Replace("{" + urlProp + "}", "");
-                    j++;
-                }
-            }
-
-            additionalQS = "access_token=" + theObject.AuthStub.authToken;
-            completeURL = completeURL + "?" + additionalQS;
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
-            request.Method = "POST";
-            request.ContentType = "application/json";
-            request.UserAgent = theObject.AuthStub.SDKVersion;
-
-            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                string jsonPayload = JsonConvert.SerializeObject(theObject);
-                streamWriter.Write(jsonPayload);
-            }
-
-            try
-            {
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream dataStream = response.GetResponseStream();
-                StreamReader reader = new StreamReader(dataStream);
-                string responseFromServer = reader.ReadToEnd();
-                reader.Close();
-                dataStream.Close();
-
-                if (response != null)
-                    this.Code = (int)response.StatusCode;
-                {
-                    if (response.StatusCode == HttpStatusCode.OK)
-                    {
-                        this.Status = true;
-                        List<ResultDetail> AllResults = new List<ResultDetail>();
-
-                        if (responseFromServer.ToString().StartsWith("["))
-                        {
-                            JArray jsonArray = JArray.Parse(responseFromServer.ToString());
-                            foreach (JObject obj in jsonArray)
-                            {
-                                APIObject currentObject = (APIObject)Activator.CreateInstance(theObject.GetType(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { obj }, null);
-                                ResultDetail result = new ResultDetail();
-                                result.Object = currentObject;
-                                AllResults.Add(result);
-                            }
-
-                            this.Results = AllResults.ToArray();
-                        }
-                        else
-                        {
-                            JObject jsonObject = JObject.Parse(responseFromServer.ToString());
-                            ResultDetail result = new ResultDetail();
-                            APIObject currentObject = (APIObject)Activator.CreateInstance(theObject.GetType(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { jsonObject }, null);
-                            result.Object = currentObject;
-                            AllResults.Add(result);
-                            this.Results = AllResults.ToArray();
-                        }
-
-
-                    }
-                    else
-                    {
-                        this.Status = false;
-                        this.Message = response.ToString();
-                    }
-                }
-
-                response.Close();
-            }
-            catch (WebException we)
-            {
-                this.Code = (int)((HttpWebResponse)we.Response).StatusCode;
-                this.Status = false;
-                this.Results = new ResultDetail[] { };
-                using (var stream = we.Response.GetResponseStream())
-                using (var reader = new StreamReader(stream))
-                {
-                    Message = reader.ReadToEnd();
-                }
-            }
-
-
-        }
-
     }
 
     public class SendReturn : PostReturn
     {
-        public SendReturn(APIObject theObject)
-            : base(theObject)
-        {
-
-        }
+        public SendReturn(APIObject obj)
+            : base(obj) { }
     }
 
     public class HelperReturn : PostReturn
     {
-        public HelperReturn(APIObject theObject)
-            : base(theObject)
-        {
-
-        }
+        public HelperReturn(APIObject obj)
+            : base(obj) { }
     }
 
     public class PatchReturn : FuelReturn
     {
         public ResultDetail[] Results { get; set; }
 
-        public PatchReturn(APIObject theObject)
+        public PatchReturn(APIObject objs)
         {
-            string OverallStatus = string.Empty, RequestID = string.Empty;
-            Result[] requestResults = new Result[0];
-
-            theObject.AuthStub.refreshToken();
-            using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var response = ExecuteAPI((client, o) =>
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
-
-                theObject = this.TranslateObject(theObject);
-                requestResults = theObject.AuthStub.soapclient.Update(new UpdateOptions(), new APIObject[] { theObject }, out RequestID, out OverallStatus);
-
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = "";
-
-                if (OverallStatus != "OK")
-                {
-                    this.Status = false;
-                }
-
-                if (requestResults.GetType() == typeof(UpdateResult[]) && requestResults.Length > 0)
-                {
-                    List<ResultDetail> results = new List<ResultDetail>();
-                    foreach (UpdateResult cr in requestResults)
+                string requestID;
+                string overallStatus;
+                return new ExecuteAPIResponse<UpdateResult>(client.SoapClient.Update(new UpdateOptions(), o, out requestID, out overallStatus), requestID, overallStatus);
+            }, objs);
+            if (response != null)
+                if (response.GetType() == typeof(UpdateResult[]) && response.Length > 0)
+                    Results = response.Cast<UpdateResult>().Select(x => new ResultDetail
                     {
-                        ResultDetail detail = new ResultDetail();
-                        if (cr.StatusCode != null)
-                            detail.StatusCode = cr.StatusCode;
-                        if (cr.StatusMessage != null)
-                            detail.StatusMessage = cr.StatusMessage;
-                        if (cr.Object != null)
-                            detail.Object = this.TranslateObject(cr.Object);
-                        detail.OrdinalID = cr.OrdinalID;
-                        detail.ErrorCode = cr.ErrorCode;
-                        results.Add(detail);
-                    }
-                    this.Results = results.ToArray();
-                }
-            }
+                        StatusCode = x.StatusCode,
+                        StatusMessage = x.StatusMessage,
+                        Object = (x.Object != null ? TranslateObject(x.Object) : null),
+                        OrdinalID = x.OrdinalID,
+                        ErrorCode = x.ErrorCode,
+                    }).ToArray();
+                else
+                    Results = new ResultDetail[0];
         }
     }
 
@@ -550,1591 +759,632 @@ namespace FuelSDK
     {
         public ResultDetail[] Results { get; set; }
 
-        public DeleteReturn(APIObject theObject)
+        public DeleteReturn(APIObject objs)
         {
-            string OverallStatus = string.Empty, RequestID = string.Empty;
-            Result[] requestResults = new Result[0];
-
-            theObject.AuthStub.refreshToken();
-            using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var response = ExecuteAPI((client, o) =>
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
-                theObject = this.TranslateObject(theObject);
-                requestResults = theObject.AuthStub.soapclient.Delete(new DeleteOptions(), new APIObject[] { theObject }, out RequestID, out OverallStatus);
-
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = "";
-
-                if (OverallStatus != "OK")
-                {
-                    this.Status = false;
-                }
-
-                if (requestResults.GetType() == typeof(DeleteResult[]) && requestResults.Length > 0)
-                {
-                    List<ResultDetail> results = new List<ResultDetail>();
-                    foreach (DeleteResult cr in requestResults)
+                string requestID;
+                string overallStatus;
+                return new ExecuteAPIResponse<DeleteResult>(client.SoapClient.Delete(new DeleteOptions(), o, out requestID, out overallStatus), requestID, overallStatus);
+            }, objs);
+            if (response != null)
+                if (response.GetType() == typeof(DeleteResult[]) && response.Length > 0)
+                    Results = response.Cast<DeleteResult>().Select(x => new ResultDetail
                     {
-                        ResultDetail detail = new ResultDetail();
-                        if (cr.StatusCode != null)
-                            detail.StatusCode = cr.StatusCode;
-                        if (cr.StatusMessage != null)
-                            detail.StatusMessage = cr.StatusMessage;
-                        if (cr.Object != null)
-                            detail.Object = this.TranslateObject(cr.Object);
-                        detail.OrdinalID = cr.OrdinalID;
-                        detail.ErrorCode = cr.ErrorCode;
-                        results.Add(detail);
-                    }
-                    this.Results = results.ToArray();
-                }
-            }
+                        StatusCode = x.StatusCode,
+                        StatusMessage = x.StatusMessage,
+                        Object = (x.Object != null ? TranslateObject(x.Object) : null),
+                        OrdinalID = x.OrdinalID,
+                        ErrorCode = x.ErrorCode,
+                    }).ToArray();
+                else
+                    Results = new ResultDetail[0];
         }
 
-        public DeleteReturn(FuelObject theObject)
+        public DeleteReturn(FuelObject obj)
         {
-
-            this.Message = "";
-            this.Status = true;
-            this.MoreResults = false;
-            this.Results = new ResultDetail[] { };
-
-
-            theObject.AuthStub.refreshToken();
-
-            string completeURL = theObject.Endpoint;
-            string additionalQS;
-
-            // All URL Props are required when doing Delete	
-            bool match;
-            if (theObject.URLProperties != null)
-            {
-                foreach (string urlProp in theObject.URLProperties)
-                {
-                    match = false;
-                    if (theObject != null)
-                    {
-                        foreach (PropertyInfo prop in theObject.GetType().GetProperties())
-                        {
-                            if (theObject.URLProperties.Contains(prop.Name) && prop.GetValue(theObject, null) != null)
-                                if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                                    match = true;
-                        }
-                        if (match == false)
-                            throw new Exception("Unable to process request due to missing required prop: " + urlProp);
-                    }
-                    else
-                        throw new Exception("Unable to process request due to missing required prop: " + urlProp);
-                }
-            }
-
-            if (theObject != null)
-            {
-                foreach (PropertyInfo prop in theObject.GetType().GetProperties())
-                {
-                    if (theObject.URLProperties.Contains(prop.Name) && prop.GetValue(theObject, null) != null)
-                        if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                            completeURL = completeURL.Replace("{" + prop.Name + "}", prop.GetValue(theObject, null).ToString());
-                }
-            }
-
-            additionalQS = "access_token=" + theObject.AuthStub.authToken;
-            completeURL = completeURL + "?" + additionalQS;
-            restDelete(theObject, completeURL);
-        }
-
-
-
-
-        private void restDelete(FuelObject theObject, string url)
-        {
-            //Build the request
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
-            request.Method = "DELETE";
-            request.ContentType = "application/json";
-            request.UserAgent = theObject.AuthStub.SDKVersion;
-
-            //Get the response
-            try
-            {
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream dataStream = response.GetResponseStream();
-                StreamReader reader = new StreamReader(dataStream);
-                string responseFromServer = reader.ReadToEnd();
-                reader.Close();
-                dataStream.Close();
-
-                if (response != null)
-                    this.Code = (int)response.StatusCode;
-                {
-                    if (response.StatusCode == HttpStatusCode.OK)
-                    {
-                        this.Status = true;
-                    }
-                    else
-                    {
-                        this.Status = false;
-                        this.Message = response.ToString();
-                    }
-                }
-
-                response.Close();
-            }
-            catch (WebException we)
-            {
-                this.Code = (int)((HttpWebResponse)we.Response).StatusCode;
-                this.Status = false;
-                using (var stream = we.Response.GetResponseStream())
-                using (var reader = new StreamReader(stream))
-                {
-                    this.Message = reader.ReadToEnd();
-                }
-            }
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+            ExecuteFuel(obj, obj.URLProperties, "DELETE", false);
         }
     }
-
 
     public class PerformReturn : FuelReturn
     {
         public ResultDetail[] Results { get; set; }
 
-        public PerformReturn(APIObject theObject, string PerformAction)
+        public PerformReturn(APIObject objs, string performAction)
         {
-            string OverallStatus = string.Empty, RequestID = string.Empty, OverallStatusMessage = string.Empty;
-            Result[] requestResults = new Result[0];
-
-            theObject.AuthStub.refreshToken();
-            using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var response = ExecuteAPI((client, o) =>
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
-                theObject = this.TranslateObject(theObject);
-                requestResults = theObject.AuthStub.soapclient.Perform(new PerformOptions(), PerformAction, new APIObject[] { theObject }, out OverallStatus, out OverallStatusMessage, out RequestID);
-                    
-
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = OverallStatusMessage;
-
-                if (OverallStatus != "OK")
-                {
-                    this.Status = false;
-                }
-
-                if (requestResults.GetType() == typeof(PerformResult[]) && requestResults.Length > 0)
-                {
-                    List<ResultDetail> results = new List<ResultDetail>();
-                    foreach (PerformResult cr in requestResults)
+                string requestID;
+                string overallStatus;
+                string overallStatusMessage;
+                return new ExecuteAPIResponse<PerformResult>(client.SoapClient.Perform(new PerformOptions(), performAction, o, out overallStatus, out overallStatusMessage, out requestID), requestID, overallStatus) { OverallStatusMessage = overallStatusMessage };
+            }, objs);
+            if (response != null)
+                if (response.GetType() == typeof(PerformResult[]) && response.Length > 0)
+                    Results = response.Cast<PerformResult>().Select(cr => new ResultDetail
                     {
-                        ResultDetail detail = new ResultDetail();
-                        if (cr.StatusCode != null)
-                            detail.StatusCode = cr.StatusCode;
-                        if (cr.StatusMessage != null)
-                            detail.StatusMessage = cr.StatusMessage;
-                        if (cr.Object != null)
-                            detail.Object = this.TranslateObject(cr.Object);
-                        if (cr.Task != null)
-                            detail.Task = cr.Task;
-                        detail.OrdinalID = cr.OrdinalID;
-                        detail.ErrorCode = cr.ErrorCode;
-                        results.Add(detail);
-                    }
-                    this.Results = results.ToArray();
-                }
-            }
+                        StatusCode = cr.StatusCode,
+                        StatusMessage = cr.StatusMessage,
+                        Object = (cr.Object != null ? TranslateObject(cr.Object) : null),
+                        Task = cr.Task,
+                        OrdinalID = cr.OrdinalID,
+                        ErrorCode = cr.ErrorCode,
+                    }).ToArray();
+                else
+                    Results = new ResultDetail[0];
         }
     }
-
 
     public class GetReturn : FuelReturn
     {
         public int LastPageNumber { get; set; }
-
         public APIObject[] Results { get; set; }
 
-        public GetReturn(APIObject theObject) : this(theObject, false, null) { }
-        public GetReturn(APIObject theObject, Boolean Continue, String OverrideObjectType)
+        public GetReturn(APIObject objs) : this(objs, false, null) { }
+        public GetReturn(APIObject objs, bool continueRequest, string overrideObjectType)
         {
-            string OverallStatus = string.Empty, RequestID = string.Empty;
-            APIObject[] objectResults = new APIObject[0];
-            theObject.AuthStub.refreshToken();
-            this.Results = new APIObject[0];
-            using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var response = ExecuteAPI(x =>
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
-
-                RetrieveRequest rr = new RetrieveRequest();
+                var rr = new RetrieveRequest();
 
                 // Handle RetrieveAllSinceLastBatch
-                if (theObject.GetType().GetProperty("GetSinceLastBatch") != null)
-                {
-                    rr.RetrieveAllSinceLastBatch = (Boolean)theObject.GetType().GetProperty("GetSinceLastBatch").GetValue(theObject, null);
-                }
+                if (x.GetType().GetProperty("GetSinceLastBatch") != null)
+                    rr.RetrieveAllSinceLastBatch = (bool)x.GetType().GetProperty("GetSinceLastBatch").GetValue(x, null);
 
-
-                if (Continue)
+                if (continueRequest)
                 {
-                    if (theObject.LastRequestID == null)
-                    {
+                    if (x.LastRequestID == null)
                         throw new Exception("Unable to call GetMoreResults without first making successful Get() request");
-                    }
-                    rr.ContinueRequest = theObject.LastRequestID;
+                    rr.ContinueRequest = x.LastRequestID;
                 }
                 else
                 {
-                    if (theObject.SearchFilter != null)
-                    {
-                        rr.Filter = theObject.SearchFilter;
-                    }
+                    if (x.SearchFilter != null)
+                        rr.Filter = x.SearchFilter;
 
                     // Use the name from the object passed in unless an override is passed (Used for DataExtensionObject)
-                    if (OverrideObjectType == null)
-                        rr.ObjectType = this.TranslateObject(theObject).GetType().ToString().Replace("FuelSDK.", "");
+                    if (string.IsNullOrEmpty(overrideObjectType))
+                        rr.ObjectType = TranslateObject(x).GetType().ToString().Replace("FuelSDK.", string.Empty);
                     else
-                        rr.ObjectType = OverrideObjectType;
+                        rr.ObjectType = overrideObjectType;
 
-                    //If they didn't specify Props then we look them up using Info()
-                    if (theObject.Props == null && theObject.GetType().GetMethod("Info") != null)
+                    // If they didn't specify Props then we look them up using Info()
+                    if (x.Props == null && x.GetType().GetMethod("Info") != null)
                     {
-                        InfoReturn ir = new InfoReturn(theObject);
-                        List<string> lProps = new List<string>();
-                        if (ir.Status)
-                        {
-                            foreach (ET_PropertyDefinition pd in ir.Results)
-                            {
-                                if (pd.IsRetrievable)
-                                    lProps.Add(pd.Name);
-                            }
-                        }
-                        else
-                        {
+                        var ir = new InfoReturn(x);
+                        if (!ir.Status)
                             throw new Exception("Unable to find properties for object in order to perform Get() request");
-                        }
-                        rr.Properties = lProps.ToArray();
+                        rr.Properties = ir.Results.Where(y => y.IsRetrievable).Select(y => y.Name).ToArray();
                     }
                     else
-                        rr.Properties = theObject.Props;
+                        rr.Properties = x.Props;
                 }
-                OverallStatus = theObject.AuthStub.soapclient.Retrieve(rr, out RequestID, out objectResults);
-
-                this.RequestID = RequestID;
-
-                if (objectResults.Length > 0)
-                {
-                    List<APIObject> cleanedObjectResults = new List<APIObject>();
-                    foreach (APIObject obj in objectResults)
-                    {
-                        cleanedObjectResults.Add(this.TranslateObject(obj));
-                    }
-                    this.Results = cleanedObjectResults.ToArray();
-                }
-
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = "";
-
-                if (OverallStatus != "OK" && OverallStatus != "MoreDataAvailable")
-                {
-                    this.Status = false;
-                    this.Message = OverallStatus;
-                }
-                else if (OverallStatus == "MoreDataAvailable")
-                {
-                    this.MoreResults = true;
-                }
-            }
-        }
-
-        public GetReturn(FuelObject theObject)
-        {
-            this.Message = "";
-            this.Status = true;
-            this.MoreResults = false;
-            this.Results = new APIObject[] { };
-
-            theObject.AuthStub.refreshToken();
-
-            string completeURL = theObject.Endpoint;
-            string additionalQS = "";
-            bool boolAdditionalQS = false;
-
-            if (theObject != null)
+                return rr;
+            }, (client, o) =>
             {
-                foreach (PropertyInfo prop in theObject.GetType().GetProperties())
-                {
-                    if (theObject.URLProperties.Contains(prop.Name) && prop.GetValue(theObject, null) != null)
-                        if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                            completeURL = completeURL.Replace("{" + prop.Name + "}", prop.GetValue(theObject, null).ToString());
-                }
-            }
-
-            ////props code for paging
-            if (theObject.Page != 0)
-            {
-                additionalQS += "$page=" + theObject.Page;
-                boolAdditionalQS = true;
-            }
-
-            bool match;
-            if (theObject.RequiredURLProperties != null)
-            {
-                foreach (string urlProp in theObject.RequiredURLProperties)
-                {
-                    match = false;
-                    if (theObject != null)
-                    {
-                        foreach (PropertyInfo prop in theObject.GetType().GetProperties())
-                        {
-                            if (theObject.URLProperties.Contains(prop.Name) && prop.GetValue(theObject, null) != null)
-                                if (prop.GetValue(theObject, null).ToString().Trim() != "" && prop.GetValue(theObject, null).ToString().Trim() != "0")
-                                    match = true;
-                        }
-
-                        if (match == false)
-                            throw new Exception("Unable to process request due to missing required prop: " + urlProp);
-                    }
-                    else
-                        throw new Exception("Unable to process request due to missing required prop: " + urlProp);
-                }
-            }
-
-            //Clean up not required URL parameters
-            int j = 0;
-            if (theObject.URLProperties != null)
-            {
-                foreach (string urlProp in theObject.URLProperties)
-                {
-                    completeURL = completeURL.Replace("{" + urlProp + "}", "");
-                    j++;
-                }
-            }
-
-            if (!boolAdditionalQS)
-                additionalQS += "access_token=" + theObject.AuthStub.authToken;
-            else
-                additionalQS += "&access_token=" + theObject.AuthStub.authToken;
-
-            completeURL = completeURL + "?" + additionalQS;
-            restGet(ref theObject, completeURL);
-        }
-
-        private void restGet(ref FuelObject theObject, string url)
-        {
-            //Build the request
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
-            request.Method = "GET";
-            request.ContentType = "application/json";
-            request.UserAgent = theObject.AuthStub.SDKVersion;
-
-            //Get the response
-            try
-            {
-                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                Stream dataStream = response.GetResponseStream();
-                StreamReader reader = new StreamReader(dataStream);
-                string responseFromServer = reader.ReadToEnd();
-                reader.Close();
-                dataStream.Close();
-
-                if (response != null)
-                    this.Code = (int)response.StatusCode;
-                {
-                    if (response.StatusCode == HttpStatusCode.OK)
-                    {
-                        this.Status = true;
-                        if (responseFromServer != null)
-                        {
-                            JObject parsedResponse = JObject.Parse(responseFromServer);
-                            //Check on the paging information from response
-                            if (parsedResponse["page"] != null)
-                            {
-                                this.LastPageNumber = int.Parse(parsedResponse["page"].Value<string>().Trim());
-                                int pageSize = int.Parse(parsedResponse["pageSize"].Value<string>().Trim());
-
-                                int count = -1;
-                                if (parsedResponse["count"] != null)
-                                {
-                                    count = int.Parse(parsedResponse["count"].Value<string>().Trim());
-                                }
-                                else if (parsedResponse["totalCount"] != null)
-                                {
-                                    count = int.Parse(parsedResponse["totalCount"].Value<string>().Trim());
-                                }
-
-                                if (count != -1 && (count > (this.LastPageNumber * pageSize)))
-                                {
-                                    this.MoreResults = true;
-                                }
-                            }
-
-                            APIObject[] getResults = new APIObject[] { };
-
-                            if (parsedResponse["items"] != null)
-                                getResults = processResults(parsedResponse["items"].ToString().Trim(), theObject.GetType());
-                            else if (parsedResponse["entities"] != null)
-                                getResults = processResults(parsedResponse["entities"].ToString().Trim(), theObject.GetType());
-                            else
-                                getResults = processResults(responseFromServer.Trim(), theObject.GetType());
-
-                            this.Results = getResults.ToArray();
-                        }
-                    }
-                    else
-                    {
-                        this.Status = false;
-                        this.Message = response.ToString();
-                    }
-                }
-                response.Close();
-            }
-            catch (WebException we)
-            {
-                this.Code = (int)((HttpWebResponse)we.Response).StatusCode;
-                this.Status = false;
-                using (var stream = we.Response.GetResponseStream())
-                using (var reader = new StreamReader(stream))
-                {
-                    this.Message = reader.ReadToEnd();
-                }
-            }
-        }
-
-        protected APIObject[] processResults(string restResponse, Type fuelType)
-        {
-            List<APIObject> allObjects = new System.Collections.Generic.List<APIObject>();
-
-            if (restResponse != null)
-            {
-                if (JsonConvert.DeserializeObject(restResponse.ToString()) != null && JsonConvert.DeserializeObject(restResponse.ToString()).ToString() != "")
-                {
-                    if (restResponse.ToString().StartsWith("["))
-                    {
-                        JArray jsonArray = JArray.Parse(restResponse.ToString());
-                        foreach (JObject obj in jsonArray)
-                        {
-                            APIObject currentObject = (APIObject)Activator.CreateInstance(fuelType, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { obj }, null);
-                            allObjects.Add(currentObject);
-                        }
-
-                        return allObjects.ToArray();
-                    }
-                    else
-                    {
-                        JObject jsonObject = JObject.Parse(restResponse.ToString());
-                        ResultDetail result = new ResultDetail();
-                        APIObject currentObject = (APIObject)Activator.CreateInstance(fuelType, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new object[] { jsonObject }, null);
-                        allObjects.Add(currentObject);
-                        return allObjects.ToArray();
-                    }
-                }
+                string requestID;
+                APIObject[] objectResults;
+                var overallStatus = client.SoapClient.Retrieve(o[0], out requestID, out objectResults);
+                return new ExecuteAPIResponse<APIObject>(objectResults, requestID, overallStatus) { OverallStatusMessage = overallStatus };
+            }, objs);
+            if (response != null)
+                if (response.Length > 0)
+                    Results = response.Select(TranslateObject).ToArray();
                 else
-                    return allObjects.ToArray();
+                    Results = new APIObject[0];
+        }
+
+        public GetReturn(FuelObject obj)
+        {
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+            var response = ExecuteFuel(obj, obj.RequiredURLProperties, "GET", false);
+            if (string.IsNullOrEmpty(response))
+                return;
+            var parsedResponse = JObject.Parse(response);
+            // Check on the paging information from response
+            if (parsedResponse["page"] != null)
+            {
+                LastPageNumber = int.Parse(parsedResponse["page"].Value<string>().Trim());
+                var pageSize = int.Parse(parsedResponse["pageSize"].Value<string>().Trim());
+
+                var count = -1;
+                if (parsedResponse["count"] != null)
+                    count = int.Parse(parsedResponse["count"].Value<string>().Trim());
+                else if (parsedResponse["totalCount"] != null)
+                    count = int.Parse(parsedResponse["totalCount"].Value<string>().Trim());
+                if (count != -1 && (count > (LastPageNumber * pageSize)))
+                    MoreResults = true;
             }
+
+            // Sub-response
+            string subResponse;
+            if (parsedResponse["items"] != null)
+                subResponse = parsedResponse["items"].ToString().Trim();
+            else if (parsedResponse["entities"] != null)
+                subResponse = parsedResponse["entities"].ToString().Trim();
             else
-                return allObjects.ToArray();
+                subResponse = response.Trim();
+            if (string.IsNullOrEmpty(subResponse))
+                return;
+
+            var responseAsJSon = JsonConvert.DeserializeObject(response);
+            if (responseAsJSon == null || responseAsJSon.ToString().Length <= 0)
+                Results = new APIObject[0];
+            else
+                if (subResponse.StartsWith("["))
+                    Results = JArray.Parse(subResponse)
+                        .Select(x => (APIObject)Activator.CreateInstance(obj.GetType(), BindingFlags.Public | BindingFlags.Instance, null, new object[] { x }, null)).ToArray();
+                else
+                {
+                    var x = JObject.Parse(subResponse);
+                    Results = new[] { (APIObject)Activator.CreateInstance(obj.GetType(), BindingFlags.Public | BindingFlags.Instance, null, new object[] { x }, null) };
+                }
         }
     }
 
     public class InfoReturn : FuelReturn
     {
         public ET_PropertyDefinition[] Results { get; set; }
-        public InfoReturn(APIObject theObject)
+
+        public InfoReturn(APIObject objs)
         {
-            string RequestID = string.Empty;
-            theObject.AuthStub.refreshToken();
-            this.Results = new ET_PropertyDefinition[0];
-            using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
+            if (objs == null)
+                throw new ArgumentNullException("objs");
+            var response = ExecuteAPI(x => new ObjectDefinitionRequest
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
-
-                ObjectDefinitionRequest odr = new ObjectDefinitionRequest();
-                odr.ObjectType = this.TranslateObject(theObject).GetType().ToString().Replace("FuelSDK.", "");
-                ObjectDefinition[] definitionResults = theObject.AuthStub.soapclient.Describe(new ObjectDefinitionRequest[] { odr }, out RequestID);
-
-                this.RequestID = RequestID;
-                this.Status = true;
-                this.Code = 200;
-                this.MoreResults = false;
-                this.Message = "";
-
-
-                if (definitionResults.Length > 0)
-                {
-
-                    List<ET_PropertyDefinition> cleanedObjectResults = new List<ET_PropertyDefinition>();
-                    foreach (PropertyDefinition obj in definitionResults[0].Properties)
-                    {
-                        cleanedObjectResults.Add((ET_PropertyDefinition)(this.TranslateObject(obj)));
-                    }
-                    this.Results = cleanedObjectResults.ToArray();
-                }
+                ObjectType = TranslateObject(x).GetType().ToString().Replace("FuelSDK.", string.Empty)
+            }, (client, o) =>
+            {
+                string requestID;
+                return new ExecuteAPIResponse<ObjectDefinition>(client.SoapClient.Describe(o, out requestID), requestID, "OK");
+            }, objs);
+            if (response != null)
+                if (response.Length > 0)
+                    Results = response[0].Properties.Select(x => (ET_PropertyDefinition)(TranslateObject(x))).ToArray();
                 else
-                {
-                    this.Status = false;
-                }
-            }
+                    Status = false;
         }
     }
 
-    public abstract class FuelReturn
+    #endregion
+
+    #region Subscriber Related Objects
+
+    public class ET_Subscriber : Subscriber
     {
-        public Boolean Status { get; set; }
-        public String Message { get; set; }
-        public Boolean MoreResults { get; set; }
-        public int Code { get; set; }
-        public string RequestID { get; set; }
-
-        private Dictionary<Type, Type> translator = new Dictionary<Type, Type>();
-
-        public FuelReturn()
-        {
-            translator.Add(typeof(ET_Folder), typeof(DataFolder));
-            translator.Add(typeof(DataFolder), typeof(ET_Folder));
-
-            translator.Add(typeof(ET_List), typeof(List));
-            translator.Add(typeof(List), typeof(ET_List));
-
-            translator.Add(typeof(ET_ContentArea), typeof(ContentArea));
-            translator.Add(typeof(ContentArea), typeof(ET_ContentArea));
-
-            translator.Add(typeof(ET_ObjectDefinition), typeof(ObjectDefinition));
-            translator.Add(typeof(ObjectDefinition), typeof(ET_ObjectDefinition));
-
-            translator.Add(typeof(ET_PropertyDefinition), typeof(PropertyDefinition));
-            translator.Add(typeof(PropertyDefinition), typeof(ET_PropertyDefinition));
-
-            translator.Add(typeof(Subscriber), typeof(ET_Subscriber));
-            translator.Add(typeof(ET_Subscriber), typeof(Subscriber));
-
-            translator.Add(typeof(ET_ProfileAttribute), typeof(FuelSDK.Attribute));
-            translator.Add(typeof(FuelSDK.Attribute), typeof(ET_ProfileAttribute));
-
-            translator.Add(typeof(ET_Email), typeof(FuelSDK.Email));
-            translator.Add(typeof(FuelSDK.Email), typeof(ET_Email));
-
-            translator.Add(typeof(ET_SubscriberList), typeof(FuelSDK.SubscriberList));
-            translator.Add(typeof(FuelSDK.SubscriberList), typeof(ET_SubscriberList));
-
-            translator.Add(typeof(ET_List_Subscriber), typeof(FuelSDK.ListSubscriber));
-            translator.Add(typeof(FuelSDK.ListSubscriber), typeof(ET_List_Subscriber));
-
-            translator.Add(typeof(ET_DataExtension), typeof(FuelSDK.DataExtension));
-            translator.Add(typeof(FuelSDK.DataExtension), typeof(ET_DataExtension));
-
-            translator.Add(typeof(ET_DataExtensionColumn), typeof(FuelSDK.DataExtensionField));
-            translator.Add(typeof(FuelSDK.DataExtensionField), typeof(ET_DataExtensionColumn));
-
-            translator.Add(typeof(ET_DataExtensionRow), typeof(FuelSDK.DataExtensionObject));
-            translator.Add(typeof(FuelSDK.DataExtensionObject), typeof(ET_DataExtensionRow));
-
-            translator.Add(typeof(ET_SendClassification), typeof(FuelSDK.SendClassification));
-            translator.Add(typeof(FuelSDK.SendClassification), typeof(ET_SendClassification));
-
-            translator.Add(typeof(ET_SendDefinitionList), typeof(FuelSDK.SendDefinitionList));
-            translator.Add(typeof(FuelSDK.SendDefinitionList), typeof(ET_SendDefinitionList));
-
-            translator.Add(typeof(ET_SenderProfile), typeof(FuelSDK.SenderProfile));
-            translator.Add(typeof(FuelSDK.SenderProfile), typeof(ET_SenderProfile));
-
-            translator.Add(typeof(ET_DeliveryProfile), typeof(FuelSDK.DeliveryProfile));
-            translator.Add(typeof(FuelSDK.DeliveryProfile), typeof(ET_DeliveryProfile));
-
-            translator.Add(typeof(ET_TriggeredSend), typeof(FuelSDK.TriggeredSendDefinition));
-            translator.Add(typeof(FuelSDK.TriggeredSendDefinition), typeof(ET_TriggeredSend));
-
-            translator.Add(typeof(ET_EmailSendDefinition), typeof(FuelSDK.EmailSendDefinition));
-            translator.Add(typeof(FuelSDK.EmailSendDefinition), typeof(ET_EmailSendDefinition));
-
-            translator.Add(typeof(ET_Send), typeof(FuelSDK.Send));
-            translator.Add(typeof(FuelSDK.Send), typeof(ET_Send));
-
-            translator.Add(typeof(ET_Import), typeof(FuelSDK.ImportDefinition));
-            translator.Add(typeof(FuelSDK.ImportDefinition), typeof(ET_Import));
-
-            translator.Add(typeof(ET_ImportResult), typeof(FuelSDK.ImportResultsSummary));
-            translator.Add(typeof(FuelSDK.ImportResultsSummary), typeof(ET_ImportResult));
-
-            // The translation for this is handled in the Get() method for DataExtensionObject so no need to translate it
-            translator.Add(typeof(APIProperty), typeof(APIProperty));
-
-            translator.Add(typeof(ET_Trigger), typeof(FuelSDK.TriggeredSend));
-            translator.Add(typeof(FuelSDK.TriggeredSend), typeof(ET_Trigger));
-
-            // Tracking Events
-            translator.Add(typeof(ET_BounceEvent), typeof(BounceEvent));
-            translator.Add(typeof(BounceEvent), typeof(ET_BounceEvent));
-            translator.Add(typeof(OpenEvent), typeof(ET_OpenEvent));
-            translator.Add(typeof(ET_OpenEvent), typeof(OpenEvent));
-            translator.Add(typeof(ET_ClickEvent), typeof(ClickEvent));
-            translator.Add(typeof(ClickEvent), typeof(ET_ClickEvent));
-            translator.Add(typeof(ET_UnsubEvent), typeof(UnsubEvent));
-            translator.Add(typeof(UnsubEvent), typeof(ET_UnsubEvent));
-            translator.Add(typeof(ET_SentEvent), typeof(SentEvent));
-            translator.Add(typeof(SentEvent), typeof(ET_SentEvent));
-
-        }
-
-
-        public APIObject TranslateObject(APIObject inputObject)
-        {
-
-            if (this.translator.ContainsKey(inputObject.GetType()))
-            {
-                APIObject returnObject = (APIObject)Activator.CreateInstance(translator[inputObject.GetType()]);
-
-                foreach (PropertyInfo prop in inputObject.GetType().GetProperties())
-                {
-                    if ((prop.PropertyType.IsSubclassOf(typeof(APIObject)) || prop.PropertyType == typeof(APIObject)) && prop.GetValue(inputObject, null) != null)
-                    {
-                        prop.SetValue(returnObject, this.TranslateObject(prop.GetValue(inputObject, null)), null);
-                    }
-                    else if (translator.ContainsKey(prop.PropertyType) && prop.GetValue(inputObject, null) != null)
-                    {
-                        prop.SetValue(returnObject, this.TranslateObject(prop.GetValue(inputObject, null)), null);
-                    }
-                    else if (prop.PropertyType.IsArray && prop.GetValue(inputObject, null) != null)
-                    {
-                        Array a = (Array)prop.GetValue(inputObject, null);
-                        Array outArray;
-
-                        if (a.Length > 0)
-                        {
-                            if (translator.ContainsKey(a.GetValue(0).GetType()))
-                            {
-                                outArray = Array.CreateInstance(translator[a.GetValue(0).GetType()], a.Length);
-
-                                for (int i = 0; i < a.Length; i++)
-                                {
-                                    if (translator.ContainsKey(a.GetValue(i).GetType()))
-                                    {
-                                        outArray.SetValue(TranslateObject(a.GetValue(i)), i);
-                                    }
-                                }
-                                if (outArray.Length > 0)
-                                {
-                                    prop.SetValue(returnObject, outArray, null);
-                                }
-                            }
-                        }
-                    }
-                    else if (prop.Name == "FolderID" && prop.GetValue(inputObject, null) != null)
-                    {
-                        if (inputObject.GetType().GetProperty("Category") != null)
-                        {
-                            PropertyInfo categoryIDProp = inputObject.GetType().GetProperty("Category");
-                            categoryIDProp.SetValue(returnObject, prop.GetValue(inputObject, null), null);
-                        }
-                        else if (inputObject.GetType().GetProperty("CategoryID") != null)
-                        {
-                            PropertyInfo categoryIDProp = inputObject.GetType().GetProperty("CategoryID");
-                            categoryIDProp.SetValue(returnObject, prop.GetValue(inputObject, null), null);
-                        }
-                    }
-                    else if ((prop.Name == "CategoryIDSpecified" || prop.Name == "CategorySpecified") && prop.GetValue(inputObject, null) != null)
-                    {
-                        // Do nothing
-                    }
-                    else if ((prop.Name == "CategoryID" || prop.Name == "Category") && prop.GetValue(inputObject, null) != null)
-                    {
-                        if (returnObject.GetType().GetProperty("FolderID") != null)
-                        {
-                            PropertyInfo folderIDProp = returnObject.GetType().GetProperty("FolderID");
-                            folderIDProp.SetValue(returnObject, Convert.ToInt32(prop.GetValue(inputObject, null)), null);
-
-                        }
-                    }
-                    else if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
-                    {
-                        prop.SetValue(returnObject, prop.GetValue(inputObject, null), null);
-                    }
-
-                }
-                return returnObject;
-
-            }
-            else
-            {
-                return inputObject;
-            }
-        }
-
-        protected object TranslateObject(object inputObject)
-        {
-
-            if (this.translator.ContainsKey(inputObject.GetType()))
-            {
-                object returnObject = (object)Activator.CreateInstance(translator[inputObject.GetType()]);
-                foreach (PropertyInfo prop in inputObject.GetType().GetProperties())
-                {
-                    if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
-                    {
-                        prop.SetValue(returnObject, prop.GetValue(inputObject, null), null);
-                    }
-                }
-                return returnObject;
-
-            }
-            else
-            {
-                return inputObject;
-            }
-        }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    // Subscriber Related Objects
-    public class ET_Subscriber : FuelSDK.Subscriber
-    {
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
-    }
-
-    public class ET_ProfileAttribute : FuelSDK.Attribute { }
-    public class ET_ImportResult : FuelSDK.ImportResultsSummary { }    
-    public class ET_SubscriberList : FuelSDK.SubscriberList { }
+    public class ET_ProfileAttribute : Attribute { }
+    public class ET_ImportResult : ImportResultsSummary { }
+    public class ET_SubscriberList : SubscriberList { }
 
     public class ET_List : List
     {
-        public int FolderID { get; set; }
         internal string FolderMediaType = "list";
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public int? FolderID { get; set; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
+    }
+
+    public class ET_QueryDefinition : QueryDefinition
+    {
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_Send : Send
-    {               
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+    {
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_List_Subscriber : ListSubscriber
     {
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    //Content Related
+    #endregion
+
+    #region Content Related
 
     public class ET_ContentArea : ContentArea
     {
-        public int FolderID { get; set; }
         internal string FolderMediaType = "content";
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public int? FolderID { get; set; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_Email : Email
     {
-        public int FolderID { get; set; }
         internal string FolderMediaType = "email";
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public int? FolderID { get; set; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_EmailSendDefinition : EmailSendDefinition
     {
-        public int FolderID { get; set; }
         internal string FolderMediaType = "userinitiatedsends";
         internal string LastTaskID = string.Empty;
-        public FuelSDK.PostReturn Post()
+        public int? FolderID { get; set; }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
+        public PerformReturn Send()
         {
-            return new FuelSDK.PostReturn(this);
+            var r = new PerformReturn(this, "start");
+            if (r.Results.Length == 1)
+                LastTaskID = ((ResultDetail)r.Results[0]).Task.ID;
+            return r;
         }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
-
-        public FuelSDK.PerformReturn Send()
-        {
-            PerformReturn thisPerformResult = new FuelSDK.PerformReturn(this, "start");
-            if (thisPerformResult.Results.Length == 1)
-            {
-                this.LastTaskID = ((ResultDetail)thisPerformResult.Results[0]).Task.ID;
-            }
-            return thisPerformResult;
-        }
-
-        public FuelSDK.GetReturn Status()
+        public GetReturn Status()
         {
             if (LastTaskID == string.Empty)
-            {
                 throw new Exception("No ID available in order to return status for ET_EmailSendDefinition");
-            }
-            else
+            var r = new GetReturn(new ET_Send
             {
-                ET_Send thisSend = new ET_Send();
-                thisSend.AuthStub = this.AuthStub;
-                thisSend.SearchFilter = new SimpleFilterPart() { Value = new string[] { LastTaskID.ToString() }, Property = "ID", SimpleOperator = SimpleOperators.equals };
-                FuelSDK.GetReturn response = new GetReturn(thisSend);
-                this.LastRequestID = response.RequestID;
-                return response;
-            }
-        }        
+                AuthStub = AuthStub,
+                SearchFilter = new SimpleFilterPart { Value = new[] { LastTaskID }, Property = "ID", SimpleOperator = SimpleOperators.equals },
+            });
+            LastRequestID = r.RequestID;
+            return r;
+        }
     }
 
     public class ET_Import : ImportDefinition
     {
         internal string LastTaskID = string.Empty;
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
-
-        public FuelSDK.GetReturn Status()
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
+        public GetReturn Status()
         {
             if (LastTaskID == string.Empty)
-            {
                 throw new Exception("No ID available in order to return status for ET_Import");
-            }
-            else
+            var r = new GetReturn(new ET_ImportResult
             {
-                ET_ImportResult thisSend = new ET_ImportResult();
-                thisSend.AuthStub = this.AuthStub;
-                thisSend.Props = new string[] { "ImportDefinitionCustomerKey", "TaskResultID", "ImportStatus", "StartDate", "EndDate", "DestinationID", "NumberSuccessful", "NumberDuplicated", "NumberErrors", "TotalRows", "ImportType" };
-                thisSend.SearchFilter = new SimpleFilterPart() { Value = new string[] { LastTaskID.ToString() }, Property = "TaskResultID", SimpleOperator = SimpleOperators.equals };
-                FuelSDK.GetReturn response = new GetReturn(thisSend);
-                this.LastRequestID = response.RequestID;
-                return response;
-            }
+                AuthStub = AuthStub,
+                Props = new string[] { "ImportDefinitionCustomerKey", "TaskResultID", "ImportStatus", "StartDate", "EndDate", "DestinationID", "NumberSuccessful", "NumberDuplicated", "NumberErrors", "TotalRows", "ImportType" },
+                SearchFilter = new SimpleFilterPart { Value = new[] { LastTaskID }, Property = "TaskResultID", SimpleOperator = SimpleOperators.equals },
+            });
+            LastRequestID = r.RequestID;
+            return r;
         }
-
-        public FuelSDK.PerformReturn Start()
+        public PerformReturn Start()
         {
-            PerformReturn thisPerformResult = new FuelSDK.PerformReturn(this, "start");
-            if (thisPerformResult.Results.Length == 1)
-            {
-                this.LastTaskID = ((ResultDetail)thisPerformResult.Results[0]).Task.ID;
-            }
-            return thisPerformResult;
+            var r = new PerformReturn(this, "start");
+            if (r.Results.Length == 1)
+                LastTaskID = ((ResultDetail)r.Results[0]).Task.ID;
+            return r;
         }
     }
 
+    #endregion
 
-    // Data Extension Objects 
+    #region Data Extension Objects
 
     public class ET_DataExtension : DataExtension
     {
-        public int FolderID { get; set; }
         internal string FolderMediaType = "dataextension";
+        public int? FolderID { get; set; }
         public ET_DataExtensionColumn[] Columns { get; set; }
-        public FuelSDK.PostReturn Post()
+        public PostReturn Post()
         {
-            ET_DataExtension tempDE = this;
-            tempDE.Fields = this.Columns;
-            tempDE.Columns = null;
-            PostReturn tempPR = new FuelSDK.PostReturn(tempDE);
-            foreach (ResultDetail rd in tempPR.Results)
+            ET_DataExtension de = this;
+            de.Fields = Columns;
+            de.Columns = null;
+            var pr = new PostReturn(de);
+            foreach (var rd in pr.Results)
             {
                 ((ET_DataExtension)rd.Object).Columns = (ET_DataExtensionColumn[])((ET_DataExtension)rd.Object).Fields;
                 ((ET_DataExtension)rd.Object).Fields = null;
             }
-            return tempPR;
+            return pr;
         }
-        public FuelSDK.PatchReturn Patch()
+        public PatchReturn Patch()
         {
-            ET_DataExtension tempDE = this;
-            tempDE.Fields = this.Columns;
-            tempDE.Columns = null;
-            PatchReturn tempPR = new FuelSDK.PatchReturn(tempDE);
-            foreach (ResultDetail rd in tempPR.Results)
+            ET_DataExtension de = this;
+            de.Fields = Columns;
+            de.Columns = null;
+            var pr = new PatchReturn(de);
+            foreach (var rd in pr.Results)
             {
                 ((ET_DataExtension)rd.Object).Columns = (ET_DataExtensionColumn[])((ET_DataExtension)rd.Object).Fields;
                 ((ET_DataExtension)rd.Object).Fields = null;
             }
-            return tempPR;
+            return pr;
         }
-        public FuelSDK.DeleteReturn Delete()
+        public DeleteReturn Delete()
         {
-            ET_DataExtension tempDE = this;
-            tempDE.Fields = this.Columns;
-            return new FuelSDK.DeleteReturn(tempDE);
+            ET_DataExtension de = this;
+            de.Fields = Columns;
+            return new DeleteReturn(de);
         }
-        public FuelSDK.GetReturn Get()
+        public GetReturn Get()
         {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            foreach (ET_DataExtension rd in response.Results)
+            var r = new GetReturn(this);
+            LastRequestID = r.RequestID;
+            foreach (ET_DataExtension rd in r.Results)
             {
                 rd.Columns = (ET_DataExtensionColumn[])rd.Fields;
                 rd.Fields = null;
             }
-            return response;
+            return r;
         }
-        public FuelSDK.GetReturn GetMoreResults()
+        public GetReturn GetMoreResults()
         {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            foreach (ET_DataExtension rd in response.Results)
+            var r = new GetReturn(this, true, null);
+            LastRequestID = r.RequestID;
+            foreach (ET_DataExtension rd in r.Results)
             {
                 rd.Columns = (ET_DataExtensionColumn[])rd.Fields;
                 rd.Fields = null;
             }
-            return response;
+            return r;
         }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_DataExtensionColumn : FuelSDK.DataExtensionField
+    public class ET_DataExtensionColumn : DataExtensionField
     {
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_DataExtensionRow : FuelSDK.DataExtensionObject
+    public class ET_DataExtensionRow : DataExtensionObject
     {
         public string DataExtensionName { get; set; }
         public string DataExtensionCustomerKey { get; set; }
         public Dictionary<string, string> ColumnValues { get; set; }
-
         public ET_DataExtensionRow()
         {
             ColumnValues = new Dictionary<string, string>();
         }
-
-        public FuelSDK.PostReturn Post()
+        public PostReturn Post()
         {
-            this.GetDataExtensionCustomerKey();
-            ET_DataExtensionRow tempRow = this;
-            tempRow.CustomerKey = this.DataExtensionCustomerKey;
-            List<APIProperty> lProperties = new List<APIProperty>();
-            foreach (KeyValuePair<string, string> kvp in this.ColumnValues)
-            {
-                APIProperty tempAPIProp = new APIProperty() { Name = kvp.Key, Value = kvp.Value };
-                lProperties.Add(tempAPIProp);
-            }
-            tempRow.ColumnValues = null;
-            tempRow.Properties = lProperties.ToArray();
-            tempRow.DataExtensionName = null;
-            tempRow.DataExtensionCustomerKey = null;
-            return new FuelSDK.PostReturn(tempRow);
+            if (ColumnValues == null)
+                throw new ArgumentNullException("ColumnValues");
+            GetDataExtensionCustomerKey();
+            ET_DataExtensionRow row = this;
+            row.CustomerKey = DataExtensionCustomerKey;
+            row.Properties = ColumnValues.Select(x => new APIProperty { Name = x.Key, Value = x.Value }).ToArray();
+            row.ColumnValues = null;
+            row.DataExtensionName = null;
+            row.DataExtensionCustomerKey = null;
+            return new PostReturn(row);
         }
-        public FuelSDK.PatchReturn Patch()
+        public PatchReturn Patch()
         {
-            this.GetDataExtensionCustomerKey();
-            ET_DataExtensionRow tempRow = this;
-            tempRow.CustomerKey = this.DataExtensionCustomerKey;
-            List<APIProperty> lProperties = new List<APIProperty>();
-            foreach (KeyValuePair<string, string> kvp in this.ColumnValues)
-            {
-                APIProperty tempAPIProp = new APIProperty() { Name = kvp.Key, Value = kvp.Value };
-                lProperties.Add(tempAPIProp);
-            }
-            tempRow.ColumnValues = null;
-            tempRow.Properties = lProperties.ToArray();
-            tempRow.DataExtensionName = null;
-            tempRow.DataExtensionCustomerKey = null;
-            return new FuelSDK.PatchReturn(tempRow);
+            if (ColumnValues == null)
+                throw new ArgumentNullException("ColumnValues");
+            GetDataExtensionCustomerKey();
+            ET_DataExtensionRow row = this;
+            row.CustomerKey = DataExtensionCustomerKey;
+            row.Properties = ColumnValues.Select(x => new APIProperty { Name = x.Key, Value = x.Value }).ToArray();
+            row.ColumnValues = null;
+            row.DataExtensionName = null;
+            row.DataExtensionCustomerKey = null;
+            return new PatchReturn(row);
         }
-        public FuelSDK.DeleteReturn Delete()
+        public DeleteReturn Delete()
         {
-            this.GetDataExtensionCustomerKey();
-            ET_DataExtensionRow tempRow = this;
-            tempRow.CustomerKey = this.DataExtensionCustomerKey;
-            List<APIProperty> lProperties = new List<APIProperty>();
-            foreach (KeyValuePair<string, string> kvp in this.ColumnValues)
-            {
-                APIProperty tempAPIProp = new APIProperty() { Name = kvp.Key, Value = kvp.Value };
-                lProperties.Add(tempAPIProp);
-            }
-            tempRow.ColumnValues = null;
-            tempRow.Keys = lProperties.ToArray();
-            tempRow.DataExtensionName = null;
-            tempRow.DataExtensionCustomerKey = null;
-            return new FuelSDK.DeleteReturn(tempRow);
+            GetDataExtensionCustomerKey();
+            ET_DataExtensionRow row = this;
+            row.CustomerKey = DataExtensionCustomerKey;
+            row.Keys = (ColumnValues != null ? ColumnValues.Select(x => new APIProperty { Name = x.Key, Value = x.Value }).ToArray() : null);
+            row.ColumnValues = null;
+            row.DataExtensionName = null;
+            row.DataExtensionCustomerKey = null;
+            return new DeleteReturn(row);
         }
-        public FuelSDK.GetReturn Get()
+        public GetReturn Get()
         {
-            this.GetDataExtensionName();
-            FuelSDK.GetReturn response = new GetReturn(this, false, "DataExtensionObject[" + this.DataExtensionName + "]");
-            this.LastRequestID = response.RequestID;
-
-            foreach (ET_DataExtensionRow dr in response.Results)
+            GetDataExtensionName();
+            var r = new GetReturn(this, false, "DataExtensionObject[" + DataExtensionName + "]");
+            LastRequestID = r.RequestID;
+            foreach (ET_DataExtensionRow dr in r.Results)
             {
-                Dictionary<string, string> returnColumns = new Dictionary<string, string>();
-                foreach (APIProperty ap in dr.Properties)
-                {
-                    returnColumns.Add(ap.Name, ap.Value);
-                }
-                dr.ColumnValues = returnColumns;
+                dr.ColumnValues = dr.Properties.ToDictionary(x => x.Name, x => x.Value);
                 dr.Properties = null;
             }
-
-            return response;
+            return r;
         }
-        public FuelSDK.GetReturn GetMoreResults()
+        public GetReturn GetMoreResults()
         {
-            this.GetDataExtensionName();
-            FuelSDK.GetReturn response = new GetReturn(this, true, "DataExtensionObject[" + this.DataExtensionName + "]");
-            this.LastRequestID = response.RequestID;
-
-            foreach (ET_DataExtensionRow dr in response.Results)
+            GetDataExtensionName();
+            var r = new GetReturn(this, true, "DataExtensionObject[" + DataExtensionName + "]");
+            LastRequestID = r.RequestID;
+            foreach (ET_DataExtensionRow dr in r.Results)
             {
-                Dictionary<string, string> returnColumns = new Dictionary<string, string>();
-                foreach (APIProperty ap in dr.Properties)
-                {
-                    returnColumns.Add(ap.Name, ap.Value);
-                }
-                dr.ColumnValues = returnColumns;
+                dr.ColumnValues = dr.Properties.ToDictionary(x => x.Name, x => x.Value);
                 dr.Properties = null;
             }
-
-            return response;
+            return r;
         }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
-
+        public InfoReturn Info() { return new InfoReturn(this); }
         private void GetDataExtensionName()
         {
-            if (this.DataExtensionName == null)
+            if (DataExtensionName == null)
             {
-                if (this.DataExtensionCustomerKey != null)
-                {
-                    ET_DataExtension lookupDE = new ET_DataExtension();
-                    lookupDE.AuthStub = this.AuthStub;
-                    lookupDE.Props = new string[] { "Name", "CustomerKey" };
-                    lookupDE.SearchFilter = new SimpleFilterPart() { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new string[] { this.DataExtensionCustomerKey } };
-                    GetReturn grDEName = lookupDE.Get();
-
-                    if (grDEName.Status && grDEName.Results.Length > 0)
-                    {
-                        this.DataExtensionName = ((ET_DataExtension)grDEName.Results[0]).Name;
-                    }
-                    else
-                    {
-                        throw new Exception("Unable to process ET_DataExtensionRow request due to unable to find DataExtension based on CustomerKey");
-                    }
-                }
-                else
-                {
+                if (DataExtensionCustomerKey == null)
                     throw new Exception("Unable to process ET_DataExtensionRow request due to DataExtensionCustomerKey or DataExtensionName not being defined on ET_DatExtensionRow");
-                }
+                var grDEName = new ET_DataExtension
+                {
+                    AuthStub = AuthStub,
+                    Props = new[] { "Name", "CustomerKey" },
+                    SearchFilter = new SimpleFilterPart { Property = "CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new[] { DataExtensionCustomerKey } },
+                }.Get();
+                if (grDEName.Status && grDEName.Results.Length > 0)
+                    DataExtensionName = ((ET_DataExtension)grDEName.Results[0]).Name;
+                else
+                    throw new Exception("Unable to process ET_DataExtensionRow request due to unable to find DataExtension based on CustomerKey");
             }
         }
-
         private void GetDataExtensionCustomerKey()
         {
-            if (this.DataExtensionCustomerKey == null)
+            if (DataExtensionCustomerKey == null)
             {
-                if (this.DataExtensionName != null)
-                {
-                    ET_DataExtension lookupDE = new ET_DataExtension();
-                    lookupDE.AuthStub = this.AuthStub;
-                    lookupDE.Props = new string[] { "Name", "CustomerKey" };
-                    lookupDE.SearchFilter = new SimpleFilterPart() { Property = "Name", SimpleOperator = SimpleOperators.equals, Value = new string[] { this.DataExtensionName } };
-                    GetReturn grDEName = lookupDE.Get();
-
-                    if (grDEName.Status && grDEName.Results.Length > 0)
-                    {
-                        this.DataExtensionCustomerKey = ((ET_DataExtension)grDEName.Results[0]).CustomerKey;
-                    }
-                    else
-                    {
-                        throw new Exception("Unable to process ET_DataExtensionRow request due to unable to find DataExtension based on DataExtensionName provided.");
-                    }
-                }
-                else
-                {
+                if (DataExtensionName == null)
                     throw new Exception("Unable to process ET_DataExtensionRow request due to DataExtensionCustomerKey or DataExtensionName not being defined on ET_DatExtensionRow");
-                }
+                var grDEName = new ET_DataExtension
+                {
+                    AuthStub = AuthStub,
+                    Props = new[] { "Name", "CustomerKey" },
+                    SearchFilter = new SimpleFilterPart { Property = "Name", SimpleOperator = SimpleOperators.equals, Value = new[] { DataExtensionName } },
+                }.Get();
+                if (grDEName.Status && grDEName.Results.Length > 0)
+                    DataExtensionCustomerKey = ((ET_DataExtension)grDEName.Results[0]).CustomerKey;
+                else
+                    throw new Exception("Unable to process ET_DataExtensionRow request due to unable to find DataExtension based on DataExtensionName provided.");
             }
         }
     }
 
+    #endregion
 
-    // Misc Objects
+    #region Misc Objects
 
-    public class ET_TriggeredSend : FuelSDK.TriggeredSendDefinition
+    public class ET_TriggeredSend : TriggeredSendDefinition
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "triggered_send";
         public ET_Subscriber[] Subscribers { get; set; }
-
-        public FuelSDK.SendReturn Send()
+        public SendReturn Send()
         {
-            ET_Trigger ts = new ET_Trigger();
-            ts.CustomerKey = this.CustomerKey;
-            ts.TriggeredSendDefinition = this;
-            ts.Subscribers = this.Subscribers;
+            var ts = new ET_Trigger
+            {
+                CustomerKey = CustomerKey,
+                TriggeredSendDefinition = this,
+                Subscribers = Subscribers,
+                AuthStub = AuthStub,
+            };
             ((ET_TriggeredSend)ts.TriggeredSendDefinition).Subscribers = null;
-            ts.AuthStub = this.AuthStub;
-
-            return new FuelSDK.SendReturn(ts);
+            return new SendReturn(ts);
         }
-
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_Folder : FuelSDK.DataFolder
+    public class ET_Folder : DataFolder
     {
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-        public FuelSDK.PatchReturn Patch()
-        {
-            return new FuelSDK.PatchReturn(this);
-        }
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public PostReturn Post() { return new PostReturn(this); }
+        public PatchReturn Patch() { return new PatchReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public class ET_ObjectDefinition : FuelSDK.ObjectDefinition { }
+    public class ET_ObjectDefinition : ObjectDefinition { }
+    public class ET_PropertyDefinition : PropertyDefinition { }
+    public class ET_SendClassification : SendClassification { }
+    public class ET_SenderProfile : SenderProfile { }
+    public class ET_DeliveryProfile : DeliveryProfile { }
+    public class ET_SendDefinitionList : SendDefinitionList { }
+    public class ET_Trigger : TriggeredSend { }
 
-    public class ET_PropertyDefinition : FuelSDK.PropertyDefinition { }
+    #endregion
 
-    public class ET_SendClassification : FuelSDK.SendClassification { }
-
-    public class ET_SenderProfile : FuelSDK.SenderProfile { }
-
-    public class ET_DeliveryProfile : FuelSDK.DeliveryProfile { }
-
-    public class ET_SendDefinitionList : FuelSDK.SendDefinitionList { }
-
-    public class ET_Trigger : FuelSDK.TriggeredSend { }
-
-
-    // Tracking Events
+    #region Tracking Events
 
     public class ET_OpenEvent : OpenEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
-        public ET_OpenEvent()
-        {
-            this.GetSinceLastBatch = true;
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public bool GetSinceLastBatch { get; set; }
+        public ET_OpenEvent() { GetSinceLastBatch = true; }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_BounceEvent : BounceEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
-        public ET_BounceEvent()
-        {
-            this.GetSinceLastBatch = true;
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public bool GetSinceLastBatch { get; set; }
+        public ET_BounceEvent() { GetSinceLastBatch = true; }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_ClickEvent : ClickEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
-        public ET_ClickEvent()
-        {
-            this.GetSinceLastBatch = true;
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public bool GetSinceLastBatch { get; set; }
+        public ET_ClickEvent() { GetSinceLastBatch = true; }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_UnsubEvent : UnsubEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
-        public ET_UnsubEvent()
-        {
-            this.GetSinceLastBatch = true;
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public bool GetSinceLastBatch { get; set; }
+        public ET_UnsubEvent() { GetSinceLastBatch = true; }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
     public class ET_SentEvent : SentEvent
     {
-        public Boolean GetSinceLastBatch { get; set; }
-        public ET_SentEvent()
-        {
-            this.GetSinceLastBatch = true;
-        }
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            FuelSDK.GetReturn response = new GetReturn(this, true, null);
-            this.LastRequestID = response.RequestID;
-            return response;
-        }
-        public FuelSDK.InfoReturn Info()
-        {
-            return new FuelSDK.InfoReturn(this);
-        }
+        public bool GetSinceLastBatch { get; set; }
+        public ET_SentEvent() { GetSinceLastBatch = true; }
+        public GetReturn Get() { var r = new GetReturn(this); LastRequestID = r.RequestID; return r; }
+        public GetReturn GetMoreResults() { var r = new GetReturn(this, true, null); LastRequestID = r.RequestID; return r; }
+        public InfoReturn Info() { return new InfoReturn(this); }
     }
 
-    public partial class APIObject
-    {
-        [System.Xml.Serialization.XmlIgnore()]
-        [JsonIgnore]
-        public FuelSDK.ET_Client AuthStub { get; set; }
-        [System.Xml.Serialization.XmlIgnore()]
-        public string[] Props { get; set; }
-        [System.Xml.Serialization.XmlIgnore()]
-        public FilterPart SearchFilter { get; set; }
-        [System.Xml.Serialization.XmlIgnore()]
-        public String LastRequestID { get; set; }
-    }
+    #endregion
 
-    public class FuelObject : APIObject
-    {
-        [JsonIgnore]
-        public string Endpoint { get; set; }
-        public string[] URLProperties { get; set; }
-        public string[] RequiredURLProperties { get; set; }
-        public int Page { get; set; }
-
-        protected string cleanRestValue(JToken jobj)
-        {
-            return jobj.ToString().Replace("\"", "").Trim();
-        }
-    }
+    #region Campaign
 
     public class ET_Campaign : FuelObject
     {
@@ -2142,60 +1392,36 @@ namespace FuelSDK
         public string Description { get; set; }
         public string CampaignCode { get; set; }
         public string Color { get; set; }
-        public bool Favorite { get; set; }
-
-
+        public bool? Favorite { get; set; }
         public ET_Campaign()
         {
             Endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{ID}";
-            URLProperties = new string[] { "ID" };
-            RequiredURLProperties = new string[] { };
+            URLProperties = new[] { "ID" };
+            RequiredURLProperties = new string[0];
         }
-
-        public ET_Campaign(JObject jObject)
+        public ET_Campaign(JObject obj)
         {
-            if (jObject["id"] != null)
-                this.ID = int.Parse(cleanRestValue(jObject["id"]));
-            if (jObject["createdDate"] != null)
-                this.CreatedDate = DateTime.Parse(cleanRestValue(jObject["createdDate"]));
-            if (jObject["modifiedDate"] != null)
-                this.ModifiedDate = DateTime.Parse(cleanRestValue(jObject["modifiedDate"]));
-            if (jObject["name"] != null)
-                this.Name = cleanRestValue(jObject["name"]);
-            if (jObject["description"] != null)
-                this.Description = cleanRestValue(jObject["description"]);
-            if (jObject["campaignCode"] != null)
-                this.CampaignCode = cleanRestValue(jObject["campaignCode"]);
-            if (jObject["color"] != null)
-                this.Color = cleanRestValue(jObject["color"]);
-            if (jObject["favorite"] != null)
-                this.Favorite = bool.Parse(cleanRestValue(jObject["favorite"]));
+            if (obj["id"] != null)
+                ID = int.Parse(CleanRestValue(obj["id"]));
+            if (obj["createdDate"] != null)
+                CreatedDate = DateTime.Parse(CleanRestValue(obj["createdDate"]));
+            if (obj["modifiedDate"] != null)
+                ModifiedDate = DateTime.Parse(CleanRestValue(obj["modifiedDate"]));
+            if (obj["name"] != null)
+                Name = CleanRestValue(obj["name"]);
+            if (obj["description"] != null)
+                Description = CleanRestValue(obj["description"]);
+            if (obj["campaignCode"] != null)
+                CampaignCode = CleanRestValue(obj["campaignCode"]);
+            if (obj["color"] != null)
+                Color = CleanRestValue(obj["color"]);
+            if (obj["favorite"] != null)
+                Favorite = bool.Parse(CleanRestValue(obj["favorite"]));
         }
-
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
-            this.Page = gr.LastPageNumber;
-            return gr;
-        }
-
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            this.Page = this.Page + 1;
-            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
-            this.Page = gr.LastPageNumber;
-            return gr;
-        }
+        public PostReturn Post() { return new PostReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn GetMoreResults() { Page++; var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
     }
 
     public class ET_CampaignAsset : FuelObject
@@ -2204,89 +1430,51 @@ namespace FuelSDK
         public string CampaignID { get; set; }
         public string[] IDs { get; set; }
         public string ItemID { get; set; }
-
         public ET_CampaignAsset()
         {
             Endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{CampaignID}/assets/{ID}";
-            URLProperties = new string[] { "CampaignID", "ID" };
-            RequiredURLProperties = new string[] { "CampaignID" };
+            URLProperties = new[] { "CampaignID", "ID" };
+            RequiredURLProperties = new[] { "CampaignID" };
         }
-
-        public ET_CampaignAsset(JObject jObject)
+        public ET_CampaignAsset(JObject obj)
         {
-            if (jObject["id"] != null)
-                this.ID = int.Parse(cleanRestValue(jObject["id"]));
-            if (jObject["createdDate"] != null)
-                this.CreatedDate = DateTime.Parse(cleanRestValue(jObject["createdDate"]));
-            if (jObject["type"] != null)
-                this.Type = cleanRestValue(jObject["type"]);
-            if (jObject["campaignId"] != null)
-                this.CampaignID = cleanRestValue(jObject["campaignId"]);
-            if (jObject["itemID"] != null)
-                this.ItemID = cleanRestValue(jObject["itemID"]);
+            if (obj["id"] != null)
+                ID = int.Parse(CleanRestValue(obj["id"]));
+            if (obj["createdDate"] != null)
+                CreatedDate = DateTime.Parse(CleanRestValue(obj["createdDate"]));
+            if (obj["type"] != null)
+                Type = CleanRestValue(obj["type"]);
+            if (obj["campaignId"] != null)
+                CampaignID = CleanRestValue(obj["campaignId"]);
+            if (obj["itemID"] != null)
+                ItemID = CleanRestValue(obj["itemID"]);
         }
-
-        public FuelSDK.PostReturn Post()
-        {
-            return new FuelSDK.PostReturn(this);
-        }
-
-        public FuelSDK.DeleteReturn Delete()
-        {
-            return new FuelSDK.DeleteReturn(this);
-        }
-
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
-            this.Page = gr.LastPageNumber;
-            return gr;
-        }
-
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            this.Page = this.Page + 1;
-            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
-            this.Page = gr.LastPageNumber;
-            return gr;
-        }
+        public PostReturn Post() { return new PostReturn(this); }
+        public DeleteReturn Delete() { return new DeleteReturn(this); }
+        public GetReturn Get() { var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn GetMoreResults() { Page++; var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
     }
 
-    //
     public class ET_Endpoint : FuelObject
     {
         public string Type { get; set; }
         public string URL { get; set; }
-
         public ET_Endpoint()
         {
             Endpoint = "https://www.exacttargetapis.com/platform/v1/endpoints/{Type}";
-            URLProperties = new string[] { "Type" };
-            RequiredURLProperties = new string[] { };
+            URLProperties = new[] { "Type" };
+            RequiredURLProperties = new string[0];
         }
-
-        public ET_Endpoint(JObject jObject)
+        public ET_Endpoint(JObject obj)
         {
-            if (jObject["type"] != null)
-                this.Type = cleanRestValue(jObject["type"]).ToString().Trim();
-            if (jObject["url"] != null)
-                this.URL = cleanRestValue(jObject["url"]);
+            if (obj["type"] != null)
+                Type = CleanRestValue(obj["type"]).ToString().Trim();
+            if (obj["url"] != null)
+                URL = CleanRestValue(obj["url"]);
         }
-
-        public FuelSDK.GetReturn Get()
-        {
-            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
-            this.Page = gr.LastPageNumber;
-            return gr;
-        }
-
-        public FuelSDK.GetReturn GetMoreResults()
-        {
-            this.Page = this.Page + 1;
-            FuelSDK.GetReturn gr = new FuelSDK.GetReturn(this);
-            this.Page = gr.LastPageNumber;
-            return gr;
-        }
+        public GetReturn Get() { var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
+        public GetReturn GetMoreResults() { Page++; var r = new GetReturn(this); Page = r.LastPageNumber; return r; }
     }
 
+    #endregion
 }
