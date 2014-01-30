@@ -114,11 +114,9 @@ namespace FuelSDK
             //RefreshToken
             if ((authToken == null || authToken.Length == 0 || DateTime.Now.AddSeconds(300) > authTokenExpiration) || force)
             {
-                //Get an internalAuthToken using clientId and clientSecret
+                string strURL = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1";
                 if (sandbox == "true")
-                    string strURL = "https://auth-test.exacttargetapis.com/v1/requestToken?legacy=1";
-                else
-                    string strURL = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1";
+                    strURL = "https://auth-test.exacttargetapis.com/v1/requestToken?legacy=1";                    
                 
 
                 //Build the request

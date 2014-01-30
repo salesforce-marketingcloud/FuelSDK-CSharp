@@ -11,6 +11,7 @@ The Fuel SDK for C# provides easy access to ExactTarget's Fuel API Family servic
 - **Interaction Support**: Now supports Import and EmailSendDefinition objects .
 - **Tracking Events Batching Support**: By default, all tracking event types will only pull new data since the last time a request was made using the same filter.  If you would like to override this functionality to pull all data, simply set the GetSinceLastBatch property to false.
 - **Greater Flexibility for Authentication**: Previously the application keys required for authentication had to be hard-coded in an xml config file (FuelSDK_config.xml). While this option is still available, an additional option to pass these at the time the ET_Client class is instantiated allows has been added.  
+- **Sandbox (Test) Environment Support**: Support for non-production accounts in the ExactTarget Production Support environment. 
 
 ## Requirements ##
 - .NET Studio 2010 or higher (WCF)
@@ -84,6 +85,13 @@ Example passing ClientID/ClientSecret only:
 > NameValueCollection parameters = new NameValueCollection();<br>
 parameters.Add("clientId", "3bjbc3mg4nbk64z5kzczf89n");<br>
 parameters.Add("clientSecret", "ssnGAPvZg6kmm775KPj2Q4Cs");<br>
+ET_Client myclient = new ET_Client(parameters);<br>
+
+Example passing flag for sandbox environment with ClientID/ClientSecret: 
+> NameValueCollection parameters = new NameValueCollection();<br>
+parameters.Add("clientId", "3bjbc3mg4nbk64z5kzczf89n");<br>
+parameters.Add("clientSecret", "ssnGAPvZg6kmm775KPj2Q4Cs");<br>
+parameters.Add("sandbox", "true");<br>
 ET_Client myclient = new ET_Client(parameters);<br>
 
 ## Responses ##
