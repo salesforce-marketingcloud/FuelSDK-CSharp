@@ -7,6 +7,7 @@ ExactTarget Fuel SDK for C#
 The Fuel SDK for C# provides easy access to ExactTarget's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to ExactTarget functionality via common collection types. 
 
 ## New Features in Version .9 ##
+- **Streamlined Folder Support**: All objects that support folders within the UI now have a standardized property called FolderID.
 - **Interaction Support**: Now supports Import and EmailSendDefinition objects .
 - **Tracking Events Batching Support**: By default, all tracking event types will only pull new data since the last time a request was made using the same filter.  If you would like to override this functionality to pull all data, simply set the GetSinceLastBatch property to false.
 - **Greater Flexibility for Authentication**: Previously the application keys required for authentication had to be hard-coded in an xml config file (FuelSDK_config.xml). While this option is still available, an additional option to pass these at the time the ET_Client class is instantiated allows has been added.  

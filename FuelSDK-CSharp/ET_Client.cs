@@ -28,7 +28,7 @@ namespace FuelSDK
         public string internalAuthToken = string.Empty;
         private string refreshKey = string.Empty;
         private DateTime authTokenExpiration = DateTime.Now;
-        public string SDKVersion = "FuelSDX-C#-V.8";
+        public string SDKVersion = "FuelSDX-C#-V.9";
 
         //Constructor
         public ET_Client(NameValueCollection parameters = null)
@@ -280,6 +280,7 @@ namespace FuelSDK
             }
         }
 
+
         public PostReturn(APIObject theObject)
         {
             this.Message = "";
@@ -338,6 +339,7 @@ namespace FuelSDK
                 }
             }
         }
+
 
         public PostReturn(FuelObject theObject)
         {
@@ -1356,7 +1358,7 @@ namespace FuelSDK
 
     public class ET_List : List
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "list";
         public FuelSDK.PostReturn Post()
         {
@@ -1444,7 +1446,7 @@ namespace FuelSDK
 
     public class ET_ContentArea : ContentArea
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "content";
         public FuelSDK.PostReturn Post()
         {
@@ -1478,7 +1480,7 @@ namespace FuelSDK
 
     public class ET_Email : Email
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "email";
         public FuelSDK.PostReturn Post()
         {
@@ -1512,7 +1514,7 @@ namespace FuelSDK
 
     public class ET_EmailSendDefinition : EmailSendDefinition
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "userinitiatedsends";
         internal string LastTaskID = string.Empty;
         public FuelSDK.PostReturn Post()
@@ -1638,7 +1640,7 @@ namespace FuelSDK
 
     public class ET_DataExtension : DataExtension
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "dataextension";
         public ET_DataExtensionColumn[] Columns { get; set; }
         public FuelSDK.PostReturn Post()
@@ -1888,7 +1890,7 @@ namespace FuelSDK
 
     public class ET_TriggeredSend : FuelSDK.TriggeredSendDefinition
     {
-        public int FolderID { get; set; }
+        public int? FolderID { get; set; }
         internal string FolderMediaType = "triggered_send";
         public ET_Subscriber[] Subscribers { get; set; }
 
