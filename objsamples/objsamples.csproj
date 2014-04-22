@@ -48,6 +48,7 @@
     <Compile Include="Sample_Endpoints.cs" />
     <Compile Include="Sample_CreateDataExtensions.cs" />
     <Compile Include="Sample_AddSubscriberToList.cs" />
+    <Compile Include="Sample_Send.cs" />
     <Compile Include="Sample_TriggeredSend.cs" />
     <Compile Include="Sample_DataExtension.cs" />
     <Compile Include="Sample_List_Subscriber.cs" />

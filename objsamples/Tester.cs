@@ -92,6 +92,9 @@ namespace objsamples
                 case "UNSUBEVENT":
                     TestET_UnsubEvent();
                     break;
+                case "SEND":
+                    TestET_Send();
+                    break;
                 default:
                     Console.WriteLine("Unrecognized Object: " + objectName.ToString());
                     break;
