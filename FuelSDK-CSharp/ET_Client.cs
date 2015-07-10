@@ -132,7 +132,7 @@ namespace FuelSDK
                     if (refreshKey.Length > 0)
                         json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""refreshToken"": """ + refreshKey + @""", ""scope"": ""cas:" + internalAuthToken + @""" , ""accessType"": ""offline""}";
                     else
-                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""accessType"": ""offline""}";
+                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @"""}";
                     streamWriter.Write(json);
                 }
 
@@ -150,7 +150,8 @@ namespace FuelSDK
                 internalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
                 authToken = parsedResponse["accessToken"].Value<string>().Trim();
                 authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
-                refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
+                if (parsedResponse["refreshToken"] != null)
+                    refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
             }
         }
 
