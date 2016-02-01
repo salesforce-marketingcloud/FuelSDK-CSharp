@@ -16,24 +16,27 @@ using System.ServiceModel.Channels;
 
 namespace FuelSDK
 {
-    public class ET_Client
+    public class ET_Client: IET_Client
     {
         //Variables
-        public string authToken;
-        public SoapClient soapclient;
+        public string authToken { get; set; }
+        public SoapClient soapclient { get; set; }
         private string appSignature = string.Empty;
         private string clientId = string.Empty;
         private string clientSecret = string.Empty;
         private string soapEndPoint = string.Empty;
         private string sandbox = string.Empty;
-        public string internalAuthToken = string.Empty;
+        public string internalAuthToken { get; set; }
         private string refreshKey = string.Empty;
         private DateTime authTokenExpiration = DateTime.Now;
-        public string SDKVersion = "FuelSDX-C#-V.9";
+        public string SDKVersion { get; set; }
 
         //Constructor
         public ET_Client(NameValueCollection parameters = null)
         {
+            internalAuthToken = string.Empty;
+            SDKVersion = "FuelSDX-C#-V.9";
+
             //Get configuration file and set variables
             if (File.Exists(@"FuelSDK_config.xml"))
             {
@@ -223,7 +226,7 @@ namespace FuelSDK
     {
         public ResultDetail[] Results { get; set; }
 
-        public PostReturn(APIObject[] theObjects, ET_Client theClient)
+        public PostReturn(APIObject[] theObjects, IET_Client theClient)
         {
             this.Message = "";
             this.Status = true;
@@ -2121,7 +2124,7 @@ namespace FuelSDK
     {
         [System.Xml.Serialization.XmlIgnore()]
         [JsonIgnore]
-        public FuelSDK.ET_Client AuthStub { get; set; }
+        public FuelSDK.IET_Client AuthStub { get; set; }
         [System.Xml.Serialization.XmlIgnore()]
         public string[] Props { get; set; }
         [System.Xml.Serialization.XmlIgnore()]
