@@ -26,10 +26,9 @@ namespace FuelSDK
         private string clientSecret = string.Empty;
         private string soapEndPoint = string.Empty;
         private string sandbox = string.Empty;
-        public string internalAuthToken = string.Empty;
         private string refreshKey = string.Empty;
         private DateTime authTokenExpiration = DateTime.Now;
-        public string SDKVersion = "FuelSDX-C#-V.9";
+        public static string SDKVersion = "FuelSDX-C#-V.91";
 
         //Constructor
         public ET_Client(NameValueCollection parameters = null)
@@ -74,8 +73,7 @@ namespace FuelSDK
                 String decodedJWT = JsonWebToken.Decode(encodedJWT, appSignature);
                 JObject parsedJWT = JObject.Parse(decodedJWT);
                 authToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
-                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
-                internalAuthToken = parsedJWT["request"]["user"]["internalOauthToken"].Value<string>().Trim();
+                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));                
                 refreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
             }
             else
@@ -100,12 +98,9 @@ namespace FuelSDK
 
             //Create the SOAP binding for call with Oauth.
             BasicHttpBinding binding = new BasicHttpBinding();
-            binding.Name = "UserNameSoapBinding";
-            binding.Security.Mode = BasicHttpSecurityMode.TransportWithMessageCredential;
+            binding.Security.Mode = BasicHttpSecurityMode.Transport;            
             binding.MaxReceivedMessageSize = 2147483647;
-            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));
-            soapclient.ClientCredentials.UserName.UserName = "*";
-            soapclient.ClientCredentials.UserName.Password = "*";
+            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));   
 
         }
 
@@ -114,23 +109,23 @@ namespace FuelSDK
             //RefreshToken
             if ((authToken == null || authToken.Length == 0 || DateTime.Now.AddSeconds(300) > authTokenExpiration) || force)
             {
-                string strURL = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1";
+                string strURL = "https://auth.exacttargetapis.com/v1/requestToken";
                 if (sandbox == "true")
-                    strURL = "https://auth-test.exacttargetapis.com/v1/requestToken?legacy=1";                    
+                    strURL = "https://auth-test.exacttargetapis.com/v1/requestToken";                    
                 
 
                 //Build the request
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
                 request.Method = "POST";
                 request.ContentType = "application/json";
-                request.UserAgent = this.SDKVersion;
+                request.UserAgent = ET_Client.SDKVersion;
 
                 string json;
                 using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                 {
 
                     if (refreshKey.Length > 0)
-                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""refreshToken"": """ + refreshKey + @""", ""scope"": ""cas:" + internalAuthToken + @""" , ""accessType"": ""offline""}";
+                        json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @""", ""refreshToken"": """ + refreshKey + @""",  ""accessType"": ""offline""}";
                     else
                         json = @"{""clientId"": """ + clientId + @""", ""clientSecret"": """ + clientSecret + @"""}";
                     streamWriter.Write(json);
@@ -147,13 +142,14 @@ namespace FuelSDK
 
                 //Parse the response
                 JObject parsedResponse = JObject.Parse(responseFromServer);
-                internalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
                 authToken = parsedResponse["accessToken"].Value<string>().Trim();
                 authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
                 if (parsedResponse["refreshToken"] != null)
-                    refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
+                    refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();                
             }
         }
+
+
 
         public FuelReturn AddSubscribersToList(string EmailAddress, string SubscriberKey, List<int> ListIDs)
         {
@@ -207,6 +203,20 @@ namespace FuelSDK
 
     }
 
+    internal class SOAPHelper {
+        public static MessageHeader BuildHeader(string token)
+        {
+            XNamespace ns = "http://exacttarget.com";
+            var xmlHeader = MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", token);
+            return xmlHeader;
+        }
+        public static HttpRequestMessageProperty BuildHTTPRequest() {
+            var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();            
+            httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ET_Client.SDKVersion);
+            return httpRequest;
+        }
+    }
+
     public class ResultDetail
     {
         public string StatusCode { get; set; }
@@ -234,15 +244,8 @@ namespace FuelSDK
             theClient.refreshToken();
             using (var scope = new OperationContextScope(theClient.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theClient.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theClient.SDKVersion);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theClient.authToken));
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
                 List<APIObject> lObjects = new List<APIObject>();
                 foreach (APIObject ao in theObjects)
@@ -298,15 +301,9 @@ namespace FuelSDK
             theObject.AuthStub.refreshToken();
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
 
                 theObject = this.TranslateObject(theObject);
 
@@ -353,7 +350,6 @@ namespace FuelSDK
             this.Status = true;
             this.MoreResults = false;
             string completeURL = theObject.Endpoint;
-            string additionalQS;
 
             theObject.AuthStub.refreshToken();
 
@@ -397,13 +393,11 @@ namespace FuelSDK
                 }
             }
 
-            additionalQS = "access_token=" + theObject.AuthStub.authToken;
-            completeURL = completeURL + "?" + additionalQS;
-
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
             request.Method = "POST";
             request.ContentType = "application/json";
-            request.UserAgent = theObject.AuthStub.SDKVersion;
+            request.Headers["Authorization"] = "Bearer " + theObject.AuthStub.authToken;
+            request.UserAgent = ET_Client.SDKVersion;
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
@@ -509,15 +503,8 @@ namespace FuelSDK
             theObject.AuthStub.refreshToken();
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
                 theObject = this.TranslateObject(theObject);
                 requestResults = theObject.AuthStub.soapclient.Update(new UpdateOptions(), new APIObject[] { theObject }, out RequestID, out OverallStatus);
@@ -566,15 +553,9 @@ namespace FuelSDK
             theObject.AuthStub.refreshToken();
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
+                
                 theObject = this.TranslateObject(theObject);
                 requestResults = theObject.AuthStub.soapclient.Delete(new DeleteOptions(), new APIObject[] { theObject }, out RequestID, out OverallStatus);
 
@@ -655,9 +636,6 @@ namespace FuelSDK
                             completeURL = completeURL.Replace("{" + prop.Name + "}", prop.GetValue(theObject, null).ToString());
                 }
             }
-
-            additionalQS = "access_token=" + theObject.AuthStub.authToken;
-            completeURL = completeURL + "?" + additionalQS;
             restDelete(theObject, completeURL);
         }
 
@@ -670,7 +648,8 @@ namespace FuelSDK
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
             request.Method = "DELETE";
             request.ContentType = "application/json";
-            request.UserAgent = theObject.AuthStub.SDKVersion;
+            request.Headers["Authorization"] = "Bearer " + theObject.AuthStub.authToken;
+            request.UserAgent = ET_Client.SDKVersion;
 
             //Get the response
             try
@@ -724,15 +703,9 @@ namespace FuelSDK
             theObject.AuthStub.refreshToken();
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
                 theObject = this.TranslateObject(theObject);
                 requestResults = theObject.AuthStub.soapclient.Perform(new PerformOptions(), PerformAction, new APIObject[] { theObject }, out OverallStatus, out OverallStatusMessage, out RequestID);
                     
@@ -787,15 +760,9 @@ namespace FuelSDK
             this.Results = new APIObject[0];
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));                                
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
 
                 RetrieveRequest rr = new RetrieveRequest();
 
@@ -944,11 +911,6 @@ namespace FuelSDK
                 }
             }
 
-            if (!boolAdditionalQS)
-                additionalQS += "access_token=" + theObject.AuthStub.authToken;
-            else
-                additionalQS += "&access_token=" + theObject.AuthStub.authToken;
-
             completeURL = completeURL + "?" + additionalQS;
             restGet(ref theObject, completeURL);
         }
@@ -959,7 +921,8 @@ namespace FuelSDK
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url.Trim());
             request.Method = "GET";
             request.ContentType = "application/json";
-            request.UserAgent = theObject.AuthStub.SDKVersion;
+            request.Headers["Authorization"] = "Bearer " + theObject.AuthStub.authToken;
+            request.UserAgent = ET_Client.SDKVersion;
 
             //Get the response
             try
@@ -1080,15 +1043,8 @@ namespace FuelSDK
             this.Results = new ET_PropertyDefinition[0];
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                //Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", theObject.AuthStub.internalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
-
-                var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                httpRequest.Headers.Add(HttpRequestHeader.UserAgent, theObject.AuthStub.SDKVersion);
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
+                OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
                 ObjectDefinitionRequest odr = new ObjectDefinitionRequest();
                 odr.ObjectType = this.TranslateObject(theObject).GetType().ToString().Replace("FuelSDK.", "");
