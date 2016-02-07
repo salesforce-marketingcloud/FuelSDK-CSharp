@@ -12,7 +12,7 @@ namespace objsamples
         {
             ET_Client myclient = new ET_Client();
 
-            string NameOfTestDataExtension = "CSharpCreatedDE";
+            string NameOfTestDataExtension = "CSharpSDKExample";
 
             Console.WriteLine("--- Testing DataExtension ---");
             Console.WriteLine("\n Get all of the DataExtensions in an Account");
@@ -181,6 +181,34 @@ namespace objsamples
                 Console.WriteLine("Message: " + deleteResponse.Message.ToString());
                 Console.WriteLine("Code: " + deleteResponse.Code.ToString());
                 Console.WriteLine("Results Length: " + deleteResponse.Results.Length);
+
+                Console.WriteLine("\n Create Sendable Data Extension ");
+                ET_DataExtension postSendableDataExtension = new ET_DataExtension();
+                postSendableDataExtension.AuthStub = myclient;
+                postSendableDataExtension.Name = NameOfTestDataExtension + "Sendable";
+                postSendableDataExtension.CustomerKey = NameOfTestDataExtension + "Sendable";
+                postSendableDataExtension.IsSendable = true;
+                postSendableDataExtension.SendableDataExtensionField = new ET_DataExtensionColumn() { Name = "Email" };
+                postSendableDataExtension.SendableSubscriberField = new ET_ProfileAttribute() { Name = "Email Address" }; // This value would need to be "Subscriber Key" if not using Email Address.
+                ET_DataExtensionColumn nameSColumn = new ET_DataExtensionColumn() { Name = "Email", FieldType = DataExtensionFieldType.EmailAddress, IsPrimaryKey = true, MaxLength = 100, IsRequired = true };
+                ET_DataExtensionColumn otherSColumn = new ET_DataExtensionColumn() { Name = "OtherColumn", FieldType = DataExtensionFieldType.Text };
+                postSendableDataExtension.Columns = new ET_DataExtensionColumn[] { nameSColumn, otherSColumn };
+                PostReturn postSendableResponse = postSendableDataExtension.Post();
+                Console.WriteLine("Post Status: " + postSendableResponse.Status.ToString());
+                Console.WriteLine("Message: " + postSendableResponse.Message.ToString());
+                Console.WriteLine("Code: " + postSendableResponse.Code.ToString());
+                Console.WriteLine("Results Length: " + postSendableResponse.Results.Length);
+
+                Console.WriteLine("\n Delete DataExtension");
+                ET_DataExtension delSendableDataExtension = new ET_DataExtension();
+                delSendableDataExtension.CustomerKey = NameOfTestDataExtension + "Sendable";
+                delSendableDataExtension.AuthStub = myclient;
+                DeleteReturn deleteSendableResponse = delSendableDataExtension.Delete();
+                Console.WriteLine("Delete Status: " + deleteSendableResponse.Status.ToString());
+                Console.WriteLine("Message: " + deleteSendableResponse.Message.ToString());
+                Console.WriteLine("Code: " + deleteSendableResponse.Code.ToString());
+                Console.WriteLine("Results Length: " + deleteSendableResponse.Results.Length);
+
 
                 Console.WriteLine("\n Info DataExtension");
                 ET_DataExtension DataExtensionInfo = new ET_DataExtension();
