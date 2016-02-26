@@ -1147,6 +1147,9 @@ namespace FuelSDK
             translator.Add(typeof(ET_Send), typeof(FuelSDK.Send));
             translator.Add(typeof(FuelSDK.Send), typeof(ET_Send));
 
+            translator.Add(typeof(ET_LinkSend), typeof(FuelSDK.LinkSend));
+            translator.Add(typeof(FuelSDK.LinkSend), typeof(ET_LinkSend));
+
             translator.Add(typeof(ET_Import), typeof(FuelSDK.ImportDefinition));
             translator.Add(typeof(FuelSDK.ImportDefinition), typeof(ET_Import));
 
@@ -1945,6 +1948,8 @@ namespace FuelSDK
 
     public class ET_Trigger : FuelSDK.TriggeredSend { }
 
+    public class ET_Link : FuelSDK.Link { }
+
 
     // Tracking Events
 
@@ -2060,6 +2065,27 @@ namespace FuelSDK
             FuelSDK.GetReturn response = new GetReturn(this);
             this.LastRequestID = response.RequestID;
             return response;
+        }
+        public FuelSDK.GetReturn GetMoreResults()
+        {
+            FuelSDK.GetReturn response = new GetReturn(this, true, null);
+            this.LastRequestID = response.RequestID;
+            return response;
+        }
+        public FuelSDK.InfoReturn Info()
+        {
+            return new FuelSDK.InfoReturn(this);
+        }
+    }
+
+
+    public class ET_LinkSend : LinkSend
+    {
+        public FuelSDK.GetReturn Get()
+        {
+            FuelSDK.GetReturn response = new GetReturn(this);
+            this.LastRequestID = response.RequestID;
+            return response;            
         }
         public FuelSDK.GetReturn GetMoreResults()
         {

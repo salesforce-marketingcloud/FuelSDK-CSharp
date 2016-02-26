@@ -54,6 +54,7 @@
     <Compile Include="Sample_List_Subscriber.cs" />
     <Compile Include="Sample_Email.cs" />
     <Compile Include="Sample_ContentArea.cs" />
+    <Compile Include="Sample_LinkSend.cs" />
     <Compile Include="Sample_UnsubEvent.cs" />
     <Compile Include="Sample_ClickEvent.cs" />
     <Compile Include="Sample_SentEvent.cs" />

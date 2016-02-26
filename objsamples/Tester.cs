@@ -95,6 +95,9 @@ namespace objsamples
                 case "SEND":
                     TestET_Send();
                     break;
+                case "LINKSEND":
+                    TestET_LinkSend();
+                    break;
                 default:
                     Console.WriteLine("Unrecognized Object: " + objectName.ToString());
                     break;
