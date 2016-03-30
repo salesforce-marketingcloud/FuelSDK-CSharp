@@ -25,7 +25,7 @@ namespace FuelSDK
         private string clientId = string.Empty;
         private string clientSecret = string.Empty;
         private string soapEndPoint = string.Empty;
-        private string sandbox = string.Empty;
+        private bool sandbox = false;
         private string refreshKey = string.Empty;
         private DateTime authTokenExpiration = DateTime.Now;
         public static string SDKVersion = "FuelSDX-C#-V.91";
@@ -58,7 +58,7 @@ namespace FuelSDK
                 if (parameters.AllKeys.Contains("soapEndPoint"))
                     soapEndPoint = parameters["soapEndPoint"];
                 if (parameters.AllKeys.Contains("sandbox"))
-                    sandbox = parameters["sandbox"];
+                    Boolean.TryParse(parameters["sandbox"],out sandbox);
             }
 
             if (clientId.Equals(string.Empty) || clientSecret.Equals(string.Empty))
@@ -110,7 +110,8 @@ namespace FuelSDK
             if ((authToken == null || authToken.Length == 0 || DateTime.Now.AddSeconds(300) > authTokenExpiration) || force)
             {
                 string strURL = "https://auth.exacttargetapis.com/v1/requestToken";
-                if (sandbox == "true")
+              
+                if (sandbox)
                     strURL = "https://auth-test.exacttargetapis.com/v1/requestToken";                    
                 
 
