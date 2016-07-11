@@ -11,8 +11,7 @@ using System.Net;
 using System.IO;
 using System.Xml.Linq;
 using System.ServiceModel.Channels;
-
-
+using JWT;
 
 namespace FuelSDK
 {
