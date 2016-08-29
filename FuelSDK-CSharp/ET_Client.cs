@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Reflection;
@@ -31,19 +32,28 @@ namespace FuelSDK
         public string SDKVersion = "FuelSDX-C#-V.8";
 
         //Constructor
-        public ET_Client(NameValueCollection parameters = null)
+        public ET_Client(NameValueCollection parameters = null, bool useAppSettings = false)
         {
-            //Get configuration file and set variables
-            System.Xml.XPath.XPathDocument doc = new System.Xml.XPath.XPathDocument(@"FuelSDK_config.xml");
-            foreach (System.Xml.XPath.XPathNavigator child in doc.CreateNavigator().Select("configuration"))
-            {
-                appSignature = child.SelectSingleNode("appSignature").Value.ToString().Trim();
-                clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
-                clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
-                soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
-            }         
-
-            //If JWT URL Parameter Used
+			if (useAppSettings)
+	        {
+		        appSignature = ConfigurationManager.AppSettings["FuelSDK.appSignature"];
+		        clientId = ConfigurationManager.AppSettings["FuelSDK.clientId"];
+		        clientSecret = ConfigurationManager.AppSettings["FuelSDK.clientSecret"];
+		        soapEndPoint = ConfigurationManager.AppSettings["FuelSDK.soapEndPoint"];
+	        }
+	        else
+	        {
+		        //Get configuration file and set variables
+		        System.Xml.XPath.XPathDocument doc = new System.Xml.XPath.XPathDocument(@"FuelSDK_config.xml");
+		        foreach (System.Xml.XPath.XPathNavigator child in doc.CreateNavigator().Select("configuration"))
+		        {
+			        appSignature = child.SelectSingleNode("appSignature").Value.ToString().Trim();
+			        clientId = child.SelectSingleNode("clientId").Value.ToString().Trim();
+			        clientSecret = child.SelectSingleNode("clientSecret").Value.ToString().Trim();
+			        soapEndPoint = child.SelectSingleNode("soapEndPoint").Value.ToString().Trim();
+		        }
+	        }
+	        //If JWT URL Parameter Used
             if (parameters != null && parameters.AllKeys.Contains("jwt"))
             {
                 string encodedJWT = parameters["jwt"].ToString().Trim();
@@ -1162,7 +1172,27 @@ namespace FuelSDK
                 object returnObject = (object)Activator.CreateInstance(translator[inputObject.GetType()]);
                 foreach (PropertyInfo prop in inputObject.GetType().GetProperties())
                 {
-                    if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
+					if (translator.ContainsKey(prop.PropertyType) && prop.GetValue(inputObject, null) != null) {
+						prop.SetValue(returnObject, this.TranslateObject(prop.GetValue(inputObject, null)), null);
+					} else if (prop.PropertyType.IsArray && prop.GetValue(inputObject, null) != null) {
+						Array a = (Array)prop.GetValue(inputObject, null);
+						Array outArray;
+
+						if (a.Length > 0) {
+							if (translator.ContainsKey(a.GetValue(0).GetType())) {
+								outArray = Array.CreateInstance(translator[a.GetValue(0).GetType()], a.Length);
+
+								for (int i = 0; i < a.Length; i++) {
+									if (translator.ContainsKey(a.GetValue(i).GetType())) {
+										outArray.SetValue(TranslateObject(a.GetValue(i)), i);
+									}
+								}
+								if (outArray.Length > 0) {
+									prop.SetValue(returnObject, outArray, null);
+								}
+							}
+						}
+					}else if (prop.GetValue(inputObject, null) != null && returnObject.GetType().GetProperty(prop.Name) != null)
                     {
                         prop.SetValue(returnObject, prop.GetValue(inputObject, null), null);
                     }
@@ -1590,12 +1620,12 @@ namespace FuelSDK
 
         public FuelSDK.SendReturn Send()
         {
-            ET_Trigger ts = new ET_Trigger();
-            ts.CustomerKey = this.CustomerKey;
-            ts.TriggeredSendDefinition = this;
-            ts.Subscribers = this.Subscribers;
-            ((ET_TriggeredSend)ts.TriggeredSendDefinition).Subscribers = null;
-            ts.AuthStub = this.AuthStub;
+			var ts = new ET_Trigger();
+			ts.TriggeredSendDefinition = new ET_TriggeredSend();
+	        ts.TriggeredSendDefinition.CustomerKey = this.CustomerKey;
+	        ts.CustomerKey = this.CustomerKey;
+	        ts.Subscribers = Subscribers;
+	        ts.AuthStub = this.AuthStub;
 
             return new FuelSDK.SendReturn(ts);
         }
