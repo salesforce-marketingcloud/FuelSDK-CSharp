@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package>
+  <metadata>
+    <id>FuelSDK-CSharp</id>
+    <version>1.0.0</version>
+    <title>FuelSDK-CSharp</title>
+    <authors>ExactTarget</authors>
+    <owners>ExactTarget</owners>
+    <licenseUrl>http://www.opensource.org/licenses/mit-license.php</licenseUrl>
+    <projectUrl>https://github.com/degdigital/FuelSDK-CSharp</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The Fuel SDK for C# provides easy access to ExactTarget's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to ExactTarget functionality via common collection types.</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2013</copyright>
+    <tags>FuelSdk</tags>
+    <language>en-US</language>
+    <dependencies>
+      <group>
+        <dependency id="Newtonsoft.Json" version="5.0.6" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="build\3.5\CSharpSDK.dll" target="lib\net35" />
+    <file src="build\3.5\CSharpSDK.xml" target="lib\net35" />
+    <file src="build\4.0\CSharpSDK.dll" target="lib\net40" />
+    <file src="build\4.0\CSharpSDK.xml" target="lib\net40" />
+    <file src="build\3.5\FuelSDK_config.xml" target="content" />
+    <file src="FuelSDK-CSharp\**\*.cs" target="src\FuelSDK-CSharp" />
+  </files>
+</package>
