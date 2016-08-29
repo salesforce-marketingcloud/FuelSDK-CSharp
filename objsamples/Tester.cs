@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FuelSDK;
 
 namespace objsamples
 {
@@ -10,25 +6,21 @@ namespace objsamples
     {
         static void Main(string[] args)
         {
+            //args = new[] { "list", "campaign", "contentarea", "dataextension", "email", "folder", "list", "subscriber", "triggeredsend", "listsubscriber", "addsubscribertolist", "createdataextensions", "openevent", "bounceevent", "sentevent", "clickevent", "unsubevent" };
             if (args.Length == 0)
             {
                 Console.WriteLine("Input Object to test:");
-                string input = Console.ReadLine();
-                TestObject(input);
+                TestObject(Console.ReadLine());
             }
             else
-            {
                 foreach (string objectName in args)
-                {
                     TestObject(objectName);
-                }
-            }
-
             Console.WriteLine("Press Enter to Exit");
             Console.ReadLine();
         }
 
-        static void TestObject(string objectName) {
+        static void TestObject(string objectName)
+        {
             switch (objectName.ToUpper())
             {
                 case "CAMPAIGN":
@@ -92,12 +84,6 @@ namespace objsamples
                 case "UNSUBEVENT":
                     TestET_UnsubEvent();
                     break;
-                case "SEND":
-                    TestET_Send();
-                    break;
-                case "LINKSEND":
-                    TestET_LinkSend();
-                    break;
                 default:
                     Console.WriteLine("Unrecognized Object: " + objectName.ToString());
                     break;
@@ -105,3 +91,4 @@ namespace objsamples
         }
     }
 }
+>>>>>>> f37a8eb93fcee5f49b5fa0ab1d09dd20d467aabb

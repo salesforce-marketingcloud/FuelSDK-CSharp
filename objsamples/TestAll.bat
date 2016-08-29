@@ -1,1 +1,1 @@
-objsamples list campaign contentarea dataextension email folder list subscriber triggeredsend listsubscriber addsubscribertolist createdadataextensions openevent bounceevent sentevent clickevent unsubevent
+objsamples list campaign contentarea dataextension email folder list subscriber triggeredsend listsubscriber addsubscribertolist createdataextensions openevent bounceevent sentevent clickevent unsubevent
