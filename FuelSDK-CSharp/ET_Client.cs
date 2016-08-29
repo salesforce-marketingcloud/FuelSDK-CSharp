@@ -11,8 +11,7 @@ using System.Net;
 using System.IO;
 using System.Xml.Linq;
 using System.ServiceModel.Channels;
-
-
+using JWT;
 
 namespace FuelSDK
 {
@@ -58,7 +57,7 @@ namespace FuelSDK
                 if (parameters.AllKeys.Contains("soapEndPoint"))
                     soapEndPoint = parameters["soapEndPoint"];
                 if (parameters.AllKeys.Contains("sandbox"))
-                    Boolean.TryParse(parameters["sandbox"],out sandbox);
+                    Boolean.TryParse(parameters["sandbox"], out sandbox);
             }
 
             if (clientId.Equals(string.Empty) || clientSecret.Equals(string.Empty))
@@ -73,7 +72,7 @@ namespace FuelSDK
                 String decodedJWT = JsonWebToken.Decode(encodedJWT, appSignature);
                 JObject parsedJWT = JObject.Parse(decodedJWT);
                 authToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
-                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));                
+                authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
                 refreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
             }
             else
@@ -98,9 +97,9 @@ namespace FuelSDK
 
             //Create the SOAP binding for call with Oauth.
             BasicHttpBinding binding = new BasicHttpBinding();
-            binding.Security.Mode = BasicHttpSecurityMode.Transport;            
+            binding.Security.Mode = BasicHttpSecurityMode.Transport;
             binding.MaxReceivedMessageSize = 2147483647;
-            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));   
+            soapclient = new SoapClient(binding, new EndpointAddress(new Uri(soapEndPoint)));
 
         }
 
@@ -110,10 +109,10 @@ namespace FuelSDK
             if ((authToken == null || authToken.Length == 0 || DateTime.Now.AddSeconds(300) > authTokenExpiration) || force)
             {
                 string strURL = "https://auth.exacttargetapis.com/v1/requestToken";
-              
+
                 if (sandbox)
-                    strURL = "https://auth-test.exacttargetapis.com/v1/requestToken";                    
-                
+                    strURL = "https://auth-test.exacttargetapis.com/v1/requestToken";
+
 
                 //Build the request
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
@@ -146,7 +145,7 @@ namespace FuelSDK
                 authToken = parsedResponse["accessToken"].Value<string>().Trim();
                 authTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
                 if (parsedResponse["refreshToken"] != null)
-                    refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();                
+                    refreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
             }
         }
 
@@ -204,15 +203,17 @@ namespace FuelSDK
 
     }
 
-    internal class SOAPHelper {
+    internal class SOAPHelper
+    {
         public static MessageHeader BuildHeader(string token)
         {
             XNamespace ns = "http://exacttarget.com";
             var xmlHeader = MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", token);
             return xmlHeader;
         }
-        public static HttpRequestMessageProperty BuildHTTPRequest() {
-            var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();            
+        public static HttpRequestMessageProperty BuildHTTPRequest()
+        {
+            var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
             httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ET_Client.SDKVersion);
             return httpRequest;
         }
@@ -227,7 +228,7 @@ namespace FuelSDK
         public int NewID { get; set; }
         public string NewObjectID { get; set; }
         public APIObject Object { get; set; }
-        public TaskResult Task {get;set; }        
+        public TaskResult Task { get; set; }
     }
 
     public class PostReturn : FuelReturn
@@ -416,8 +417,8 @@ namespace FuelSDK
                 dataStream.Close();
 
                 if (response != null)
-                    this.Code = (int)response.StatusCode;
                 {
+                    this.Code = (int)response.StatusCode;
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
                         this.Status = true;
@@ -453,6 +454,9 @@ namespace FuelSDK
                         this.Status = false;
                         this.Message = response.ToString();
                     }
+                }
+                else {
+                    throw new WebException("Response not received", WebExceptionStatus.UnknownError);
                 }
 
                 response.Close();
@@ -556,7 +560,7 @@ namespace FuelSDK
             {
                 OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
                 OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
-                
+
                 theObject = this.TranslateObject(theObject);
                 requestResults = theObject.AuthStub.soapclient.Delete(new DeleteOptions(), new APIObject[] { theObject }, out RequestID, out OverallStatus);
 
@@ -663,8 +667,8 @@ namespace FuelSDK
                 dataStream.Close();
 
                 if (response != null)
-                    this.Code = (int)response.StatusCode;
                 {
+                    this.Code = (int)response.StatusCode;
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
                         this.Status = true;
@@ -674,6 +678,10 @@ namespace FuelSDK
                         this.Status = false;
                         this.Message = response.ToString();
                     }
+                }
+                else
+                {
+                    throw new WebException("Response not received", WebExceptionStatus.UnknownError);
                 }
 
                 response.Close();
@@ -709,7 +717,7 @@ namespace FuelSDK
 
                 theObject = this.TranslateObject(theObject);
                 requestResults = theObject.AuthStub.soapclient.Perform(new PerformOptions(), PerformAction, new APIObject[] { theObject }, out OverallStatus, out OverallStatusMessage, out RequestID);
-                    
+
 
                 this.Status = true;
                 this.Code = 200;
@@ -761,7 +769,7 @@ namespace FuelSDK
             this.Results = new APIObject[0];
             using (var scope = new OperationContextScope(theObject.AuthStub.soapclient.InnerChannel))
             {
-                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));                                
+                OperationContext.Current.OutgoingMessageHeaders.Add(SOAPHelper.BuildHeader(theObject.AuthStub.authToken));
                 OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, SOAPHelper.BuildHTTPRequest());
 
 
@@ -936,8 +944,8 @@ namespace FuelSDK
                 dataStream.Close();
 
                 if (response != null)
-                    this.Code = (int)response.StatusCode;
                 {
+                    this.Code = (int)response.StatusCode;
                     if (response.StatusCode == HttpStatusCode.OK)
                     {
                         this.Status = true;
@@ -983,6 +991,9 @@ namespace FuelSDK
                         this.Status = false;
                         this.Message = response.ToString();
                     }
+                }
+                else {
+                    throw new WebException("Response not received", WebExceptionStatus.UnknownError);
                 }
                 response.Close();
             }
@@ -1319,7 +1330,7 @@ namespace FuelSDK
     }
 
     public class ET_ProfileAttribute : FuelSDK.Attribute { }
-    public class ET_ImportResult : FuelSDK.ImportResultsSummary { }    
+    public class ET_ImportResult : FuelSDK.ImportResultsSummary { }
     public class ET_SubscriberList : FuelSDK.SubscriberList { }
 
     public class ET_List : List
@@ -1357,7 +1368,7 @@ namespace FuelSDK
     }
 
     public class ET_Send : Send
-    {               
+    {
         public FuelSDK.PostReturn Post()
         {
             return new FuelSDK.PostReturn(this);
@@ -1537,7 +1548,7 @@ namespace FuelSDK
                 this.LastRequestID = response.RequestID;
                 return response;
             }
-        }        
+        }
     }
 
     public class ET_Import : ImportDefinition
@@ -2086,7 +2097,7 @@ namespace FuelSDK
         {
             FuelSDK.GetReturn response = new GetReturn(this);
             this.LastRequestID = response.RequestID;
-            return response;            
+            return response;
         }
         public FuelSDK.GetReturn GetMoreResults()
         {
