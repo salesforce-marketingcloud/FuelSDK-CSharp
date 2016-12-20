@@ -100,6 +100,10 @@ namespace FuelSDK
                 //Get an internalAuthToken using clientId and clientSecret
                 string strURL = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1";
 
+                //Change URL if SOAP endpoint points to a sandbox account
+                if(soapEndPoint.ToLower().Contains("test"))
+                    strURL = "https://auth-test.exacttargetapis.com/v1/requestToken?legacy=1";
+
                 //Build the request
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
                 request.Method = "POST";
