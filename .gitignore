@@ -120,3 +120,4 @@ objsamples/[Rr]elease/
 
 objsamples/FuelSDK_config.xml
 FuelSDK-CSharp/fixer.awk
+FuelSDK-CSharp/bin
