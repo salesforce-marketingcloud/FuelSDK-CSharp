@@ -21,11 +21,12 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="build\3.5\CSharpSDK.dll" target="lib\net35" />
-    <file src="build\3.5\CSharpSDK.xml" target="lib\net35" />
-    <file src="build\4.0\CSharpSDK.dll" target="lib\net40" />
-    <file src="build\4.0\CSharpSDK.xml" target="lib\net40" />
-    <file src="build\3.5\FuelSDK_config.xml" target="content" />
+
+    <file src="build\3.5\FuelSDK.dll" target="lib\net35" />
+    <file src="build\3.5\FuelSDK.xml" target="lib\net35" />
+    <file src="build\4.0\FuelSDK.dll" target="lib\net40" />
+    <file src="build\4.0\FuelSDK.xml" target="lib\net40" />
+    <file src="build\4.0\App.config.transform" target="content" />
     <file src="FuelSDK-CSharp\**\*.cs" target="src\FuelSDK-CSharp" />
   </files>
 </package>

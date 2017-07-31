@@ -6,6 +6,13 @@ ExactTarget Fuel SDK for C#
 ## Overview ##
 The Fuel SDK for C# provides easy access to ExactTarget's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to ExactTarget functionality via common collection types. 
 
+## New Features in Version .9 ##
+- **Streamlined Folder Support**: All objects that support folders within the UI now have a standardized property called FolderID.
+- **Interaction Support**: Now supports Import and EmailSendDefinition objects .
+- **Tracking Events Batching Support**: By default, all tracking event types will only pull new data since the last time a request was made using the same filter.  If you would like to override this functionality to pull all data, simply set the GetSinceLastBatch property to false.
+- **Greater Flexibility for Authentication**: Previously the application keys required for authentication had to be hard-coded in an xml config file (FuelSDK_config.xml). While this option is still available, an additional option to pass these at the time the ET_Client class is instantiated allows has been added.  
+- **Sandbox (Test) Environment Support**: Support for non-production accounts in the ExactTarget Production Support environment. 
+
 ## Requirements ##
 - .NET Studio 2010 or higher (WCF)
 - .NET Framework 3.5 
@@ -62,7 +69,30 @@ Print out the results for viewing
 
 
 ## ET_Client Class ##
-The ET_Client class takes care of many of the required steps when accessing ExactTarget's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ETClient object for each request made.
+The ET_Client class takes care of many of the required steps when accessing ExactTarget's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ET_Client object for each request made.
+
+The ET_Client class takes 1 parameter which is a NameValueCollection that can be used for passing authentication information for use with SSO with a JWT or for passing ClientID/ClientSecret if you would prefer to not use the config file option. 
+
+Example passing JWT: 
+> NameValueCollection parameters = new NameValueCollection();<br>
+parameters.Add("clientId", "3bjbc3mg4nbk64z5kzczf89n");<br>
+parameters.Add("clientSecret", "ssnGAPvZg6kmm775KPj2Q4Cs");<br>
+parameters.Add("jwt", "JWT Value Goes Here");<br>
+parameters.Add("appSignature", "j8hj87jhf54gfk54d2lijs");<br>
+ET_Client myclient = new ET_Client(parameters);<br>
+
+Example passing ClientID/ClientSecret only: 
+> NameValueCollection parameters = new NameValueCollection();<br>
+parameters.Add("clientId", "3bjbc3mg4nbk64z5kzczf89n");<br>
+parameters.Add("clientSecret", "ssnGAPvZg6kmm775KPj2Q4Cs");<br>
+ET_Client myclient = new ET_Client(parameters);<br>
+
+Example passing flag for sandbox environment with ClientID/ClientSecret: 
+> NameValueCollection parameters = new NameValueCollection();<br>
+parameters.Add("clientId", "3bjbc3mg4nbk64z5kzczf89n");<br>
+parameters.Add("clientSecret", "ssnGAPvZg6kmm775KPj2Q4Cs");<br>
+parameters.Add("sandbox", "true");<br>
+ET_Client myclient = new ET_Client(parameters);<br>
 
 ## Responses ##
 All methods on Fuel SDK objects return an object that follows the same structure, regardless of the type of call. This object contains a common set of properties used to display details about the request.
