@@ -21,6 +21,9 @@ Project tree structure
 
 * **JWT :** JWT.cs is removed from the project and added as dependency.
 
+## Documentation ##
+[Salesforce Marketing Cloud API Document](http://salesforce-marketingcloud.github.io/FuelSDK-CSharp).
+
 ## Requirements ##
 - .NET Studio 2013 or higher (WCF)
 - .NET Framework 4 
@@ -41,7 +44,7 @@ The FuelSDK-CSharp solution file includes two projects. One for the actual SDK a
 
 Rename the  FuelSDK_config.xml.template file in the objsamples project to FuelSDK_config.xml, then edit so you can input the ClientID and Client Secret values provided when you registered your application. If you are building a HubExchange application for the Interactive Marketing Hub then, you must also provide the Application Signature (appsignature). Only change the value for the defaultwsdl configuration item if instructed by Salesforce Marketing Cloud.
 
-If you have not registered your application or you need to lookup your Application Key or Application Signature values, please go to App Center at [Code@: Salesforce Marketing Cloud's Developer Community]( https://appcenter-auth.s1.marketingcloudapps.com	 "CODE@").
+If you have not registered your application or you need to lookup your Application Key or Application Signature values, please go to App Center at [Salesforce Marketing Cloud's Developer Community]( https://appcenter-auth.s1.marketingcloudapps.com).
 
 ## Example Request ##
 All Salesforce Marketing Cloud services exposed through the Fuel SDK begin with be prefixed with "ET". Start by working with the ETList object:
