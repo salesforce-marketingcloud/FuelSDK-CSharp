@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{08451C56-0ABB-4378-8526-DF1E159D9BD6}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>FuelSDK.Test</RootNamespace>
+    <AssemblyName>FuelSDK-Test</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="nunit.framework, Version=3.7.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\packages\NUnit.3.7.1\lib\net40\nunit.framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ETCampaignTest.cs" />
+    <Compile Include="ETContentAreaTest.cs" />
+    <Compile Include="ETDataExtensionColumnTest.cs" />
+    <Compile Include="ETDataExtensionRowTest.cs" />
+    <Compile Include="ETDataExtensionTest.cs" />
+    <Compile Include="ETEmailSendDefinitionTest.cs" />
+    <Compile Include="ETEmailTest.cs" />
+    <Compile Include="ETFolderTest.cs" />
+    <Compile Include="ETImportDefinitionTest.cs" />
+    <Compile Include="ETListTest.cs" />
+    <Compile Include="ETOpenEventTest.cs" />
+    <Compile Include="ETQueryDefinitionTest.cs" />
+    <Compile Include="ETSentEventTest.cs" />
+    <Compile Include="ETSubscriberTest.cs" />
+    <Compile Include="ETTriggeredSendDefinitionTest.cs" />
+    <Compile Include="ETUnsubEventTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="packages.config" />
+    <None Include="App.config.transform">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FuelSDK-CSharp\FuelSDK-CSharp.csproj">
+      <Project>{50281782-FA9F-44B3-A073-3759A5CA1CD8}</Project>
+      <Name>FuelSDK-CSharp</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>

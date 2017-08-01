@@ -1,9 +1,24 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuelSDK-CSharp", "FuelSDK-CSharp\FuelSDK-CSharp.csproj", "{50281782-FA9F-44B3-A073-3759A5CA1CD8}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "objsamples", "objsamples\objsamples.csproj", "{3E140C94-A503-47C9-9381-40AE7FAB2049}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FuelSDK.Test", "FuelSDK-Test\FuelSDK.Test.csproj", "{08451C56-0ABB-4378-8526-DF1E159D9BD6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{217C661B-3CF6-4835-B811-F8698E46523E}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\packages.config = .nuget\packages.config
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0D76AC0C-1D08-4A45-8EA0-69B1C0002CB6}"
+	ProjectSection(SolutionItems) = preProject
+		BuildDocs.bat = BuildDocs.bat
+		readme.md = readme.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,7 +61,8 @@ Global
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug.4|Mixed Platforms.Build.0 = Debug.4|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug.4|x86.ActiveCfg = Debug.4|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug.4|x86.Build.0 = Debug.4|x86
-		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug|Any CPU.ActiveCfg = Debug.4|x86
+		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug|Any CPU.Build.0 = Debug.4|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug|Mixed Platforms.ActiveCfg = Debug|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug|Mixed Platforms.Build.0 = Debug|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Debug|x86.ActiveCfg = Debug|x86
@@ -61,6 +77,30 @@ Global
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Release|Mixed Platforms.Build.0 = Release|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Release|x86.ActiveCfg = Release|x86
 		{3E140C94-A503-47C9-9381-40AE7FAB2049}.Release|x86.Build.0 = Release|x86
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug.4|Any CPU.ActiveCfg = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug.4|Any CPU.Build.0 = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug.4|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug.4|Mixed Platforms.Build.0 = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug.4|x86.ActiveCfg = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug.4|x86.Build.0 = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Debug|x86.Build.0 = Debug|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release.4|Any CPU.ActiveCfg = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release.4|Any CPU.Build.0 = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release.4|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release.4|Mixed Platforms.Build.0 = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release.4|x86.ActiveCfg = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release.4|x86.Build.0 = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release|x86.ActiveCfg = Release|Any CPU
+		{08451C56-0ABB-4378-8526-DF1E159D9BD6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -130,7 +130,7 @@ namespace objsamples
                 Console.WriteLine("Delete Status: " + drCampaign.Status.ToString());
                 Console.WriteLine("Message: " + drCampaign.Message);
                 Console.WriteLine("Code: " + drCampaign.Code.ToString());
-                Console.WriteLine("Results Length: " + drCampaign.Results.Length);
+                //Console.WriteLine("Results Length: " + drCampaign.Results.Length);
             }
         }
     }
