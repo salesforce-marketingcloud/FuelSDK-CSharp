@@ -1,0 +1,22 @@
+var searchData=
+[
+  ['hardbounces',['HardBounces',['../class_fuel_s_d_k_1_1_send.html#a6baace4fd9045ee0c93e1adafde1367f',1,'FuelSDK.Send.HardBounces()'],['../class_fuel_s_d_k_1_1_list_send.html#a0b8d979e5106b848c24ef0aacac4ed8c',1,'FuelSDK.ListSend.HardBounces()'],['../class_fuel_s_d_k_1_1_subscriber_send_result.html#a977eab32f46d4775c3b5a97815eef270',1,'FuelSDK.SubscriberSendResult.HardBounces()']]],
+  ['hardbouncesspecified',['HardBouncesSpecified',['../class_fuel_s_d_k_1_1_send.html#a48c86860278e49e344dd6de60f2073c3',1,'FuelSDK.Send.HardBouncesSpecified()'],['../class_fuel_s_d_k_1_1_list_send.html#a33dffc915c056cff2f4a752f248a0806',1,'FuelSDK.ListSend.HardBouncesSpecified()'],['../class_fuel_s_d_k_1_1_subscriber_send_result.html#a9f821a08ecf744b95abd3143926b8c6a',1,'FuelSDK.SubscriberSendResult.HardBouncesSpecified()']]],
+  ['hasdynamicsubjectline',['HasDynamicSubjectLine',['../class_fuel_s_d_k_1_1_email.html#ab76679e70f6265904632f46cb6c28bea',1,'FuelSDK::Email']]],
+  ['hasdynamicsubjectlinespecified',['HasDynamicSubjectLineSpecified',['../class_fuel_s_d_k_1_1_email.html#a8ffd8bd74bfbd60ae33927b53304dbba',1,'FuelSDK::Email']]],
+  ['hasfontsize',['HasFontSize',['../class_fuel_s_d_k_1_1_content_area.html#ab429be24e118f3177fc9cc972380b99a',1,'FuelSDK::ContentArea']]],
+  ['hasfontsizespecified',['HasFontSizeSpecified',['../class_fuel_s_d_k_1_1_content_area.html#ae9df63fbe8b281c3f2ce3d73214b45c9',1,'FuelSDK::ContentArea']]],
+  ['haspurchasedemails',['HasPurchasedEmails',['../class_fuel_s_d_k_1_1_subscription.html#ae9ecc7cceef18433d4449d862982502e',1,'FuelSDK::Subscription']]],
+  ['headercontentarea',['HeaderContentArea',['../class_fuel_s_d_k_1_1_send_definition.html#a03e61b9fc893adf1d847b27ccbf42b59',1,'FuelSDK.SendDefinition.HeaderContentArea()'],['../class_fuel_s_d_k_1_1_delivery_profile.html#a665a1a58e25f7158ee0706609869e3c4',1,'FuelSDK.DeliveryProfile.HeaderContentArea()']]],
+  ['headerlines',['HeaderLines',['../class_fuel_s_d_k_1_1_import_definition.html#abb8490b49d5dec6b341f772bd3998473',1,'FuelSDK::ImportDefinition']]],
+  ['headerlinesspecified',['HeaderLinesSpecified',['../class_fuel_s_d_k_1_1_import_definition.html#a97d89600958479aa7246b2b0dd0f5c65',1,'FuelSDK::ImportDefinition']]],
+  ['headersalutationsource',['HeaderSalutationSource',['../class_fuel_s_d_k_1_1_send_definition.html#a02bf320957f7e3cc09ca4b44632cdfce',1,'FuelSDK.SendDefinition.HeaderSalutationSource()'],['../class_fuel_s_d_k_1_1_delivery_profile.html#a5d717caab34036e4e7005f3d5c0e65f3',1,'FuelSDK.DeliveryProfile.HeaderSalutationSource()']]],
+  ['headersalutationsourcespecified',['HeaderSalutationSourceSpecified',['../class_fuel_s_d_k_1_1_send_definition.html#a16244c731704b3d22d2bb8552da6b1eb',1,'FuelSDK.SendDefinition.HeaderSalutationSourceSpecified()'],['../class_fuel_s_d_k_1_1_delivery_profile.html#a37f0b806dbc2408f6f15a517c78d7f81',1,'FuelSDK.DeliveryProfile.HeaderSalutationSourceSpecified()']]],
+  ['honorpublicationlistoptoutsfortransactionalsends',['HonorPublicationListOptOutsForTransactionalSends',['../class_fuel_s_d_k_1_1_send_classification.html#ad88213c8c6cbd0e14d7498179e8519f1',1,'FuelSDK::SendClassification']]],
+  ['honorpublicationlistoptoutsfortransactionalsendsspecified',['HonorPublicationListOptOutsForTransactionalSendsSpecified',['../class_fuel_s_d_k_1_1_send_classification.html#a1e5e19318bf9d2dc61cfc45d41eaf247',1,'FuelSDK::SendClassification']]],
+  ['hourinterval',['HourInterval',['../class_fuel_s_d_k_1_1_hourly_recurrence.html#ab8383cd8ad7ec6d3f581c3f2bf9f627f',1,'FuelSDK::HourlyRecurrence']]],
+  ['hourintervalspecified',['HourIntervalSpecified',['../class_fuel_s_d_k_1_1_hourly_recurrence.html#a3cc5a4ed987dea1e37060127b66af0b4',1,'FuelSDK::HourlyRecurrence']]],
+  ['hourlyrecurrencepatterntype',['HourlyRecurrencePatternType',['../class_fuel_s_d_k_1_1_hourly_recurrence.html#a147b6b5df67c653d5a9ff594f417e14b',1,'FuelSDK::HourlyRecurrence']]],
+  ['hourlyrecurrencepatterntypespecified',['HourlyRecurrencePatternTypeSpecified',['../class_fuel_s_d_k_1_1_hourly_recurrence.html#a825a46e6a0d1051efd960185bd2521ac',1,'FuelSDK::HourlyRecurrence']]],
+  ['htmlbody',['HTMLBody',['../class_fuel_s_d_k_1_1_email.html#a16c2811e5654604225451d1e41756ab6',1,'FuelSDK::Email']]]
+];

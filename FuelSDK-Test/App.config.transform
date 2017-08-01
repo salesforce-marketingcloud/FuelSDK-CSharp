@@ -1,0 +1,10 @@
+﻿<?xml version="1.0"?>
+<configuration>
+  <configSections>
+    <section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" />
+  </configSections>
+  <fuelSDK
+    appSignature="none"
+    clientId="###########################"
+    clientSecret="###########################" />
+</configuration>

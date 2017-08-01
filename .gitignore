@@ -1,3 +1,10 @@
+.DS_Store
+bin
+obj
+packages
+FuelSDK-Test/ContentAreaTest.cs
+FuelSDK-CSharp.v12.suo
+docs/latex
 # Build Folders (you can keep bin if you'd like, to store dlls and pdbs)
 [Bb]in/Debug/
 [Oo]bj/
@@ -120,4 +127,6 @@ objsamples/[Rr]elease/
 
 objsamples/FuelSDK_config.xml
 FuelSDK-CSharp/fixer.awk
-FuelSDK-CSharp/bin
+*.suo
+FuelSDK-CSharp.v12.suo
+FuelSDK-Test/App.config

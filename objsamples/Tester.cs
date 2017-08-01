@@ -13,8 +13,12 @@ namespace objsamples
                 TestObject(Console.ReadLine());
             }
             else
+            {
                 foreach (string objectName in args)
+                {
                     TestObject(objectName);
+                }
+            }
             Console.WriteLine("Press Enter to Exit");
             Console.ReadLine();
         }
@@ -91,4 +95,4 @@ namespace objsamples
         }
     }
 }
->>>>>>> f37a8eb93fcee5f49b5fa0ab1d09dd20d467aabb
+

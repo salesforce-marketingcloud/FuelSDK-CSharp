@@ -1,32 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package>
   <metadata>
-    <id>FuelSDK-CSharp</id>
+    <id>SFMC.FuelSDK</id>
     <version>1.0.0</version>
     <title>FuelSDK-CSharp</title>
-    <authors>ExactTarget</authors>
-    <owners>ExactTarget</owners>
+    <authors>Salesforce</authors>
+    <owners>Salesforce</owners>
     <licenseUrl>http://www.opensource.org/licenses/mit-license.php</licenseUrl>
-    <projectUrl>https://github.com/degdigital/FuelSDK-CSharp</projectUrl>
+    <projectUrl>https://github.com/salesforce-marketingcloud/FuelSDK-CSharp</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>The Fuel SDK for C# provides easy access to ExactTarget's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to ExactTarget functionality via common collection types.</description>
+    <description>The Fuel SDK for C# provides easy access to Salesforce Marketing Cloud's (ExactTarge) Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to Salesforce Marketing Cloud functionality via common collection types.</description>
     <releaseNotes></releaseNotes>
-    <copyright>Copyright 2013</copyright>
-    <tags>FuelSdk</tags>
+    <copyright>Copyright 2017</copyright>
+    <tags>FuelSdk Saleforce Marketing Cloud ExactTarget</tags>
     <language>en-US</language>
     <dependencies>
       <group>
-        <dependency id="Newtonsoft.Json" version="5.0.6" />
+        <dependency id="Newtonsoft.Json" version="10.0.3" />
+        <dependency id="JWT" version="3.0.0"  />
       </group>
     </dependencies>
   </metadata>
   <files>
-
-    <file src="build\3.5\FuelSDK.dll" target="lib\net35" />
-    <file src="build\3.5\FuelSDK.xml" target="lib\net35" />
-    <file src="build\4.0\FuelSDK.dll" target="lib\net40" />
-    <file src="build\4.0\FuelSDK.xml" target="lib\net40" />
-    <file src="build\4.0\App.config.transform" target="content" />
-    <file src="FuelSDK-CSharp\**\*.cs" target="src\FuelSDK-CSharp" />
+    <file src="..\FuelSDK-CSharp\Bin\Release\FuelSDK.dll" target="lib\net40" />
+    <file src="..\FuelSDK-CSharp\Bin\Release\App.config.transform" target="content" />
   </files>
 </package>
