@@ -40,6 +40,7 @@
     <Compile Include="ETDataExtensionColumnTest.cs" />
     <Compile Include="ETDataExtensionRowTest.cs" />
     <Compile Include="ETDataExtensionTest.cs" />
+    <Compile Include="ETDataExtractTest.cs" />
     <Compile Include="ETEmailSendDefinitionTest.cs" />
     <Compile Include="ETEmailTest.cs" />
     <Compile Include="ETFolderTest.cs" />
