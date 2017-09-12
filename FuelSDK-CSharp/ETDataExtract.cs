@@ -36,7 +36,7 @@ namespace FuelSDK
         /// <summary>
         /// Gets or sets flag to indicate whether to include number of emails sent.
         /// </summary>
-        public bool ExtractSent { get; set; }
+        public bool ExtractSends { get; set; }
         /// <summary>
         /// Gets or sets flag to indicate whether to include send jobs details.
         /// </summary>
@@ -89,12 +89,12 @@ namespace FuelSDK
         /// </summary>
         public ETDataExtract()
         {
-            ExtractBounces = true;
+            ExtractBounces = false;
             ExtractClicks = true;
             ExtractConversions = true;
             ExtractOpens = true;
             ExtractSendJobs = true;
-            ExtractSent = true;
+            ExtractSends = true;
             ExtractSurveyResponses = true;
             IncludeTestSends = false;
             ExtractUnsubs = true;
@@ -129,6 +129,26 @@ namespace FuelSDK
             return PerformDataExtract("Data Extension Extract", paramNames);
         }
 
+        public ExtractResponse ExtractTrackingData()
+        {
+            ValidateExtractTrackingDataParameters();
+            string[] paramNames = new[]
+                {"ExtractClicks", "ExtractBounces","ExtractConversions","ExtractSendJobs","ExtractSends","ExtractSurveyResponses","IncludeTestSends","ExtractUnsubs", "ExtractOpens", "OutputFileName", "StartDate", "EndDate"};
+            return PerformDataExtract("Tracking Extract", paramNames);
+        }
+
+        private void ValidateExtractTrackingDataParameters()
+        {
+            if (string.IsNullOrWhiteSpace(OutputFileName))
+            {
+                throw new ApplicationException("Output file name is empty or null. Please fill output file name.");
+            }
+            if (!OutputFileName.ToLower().EndsWith(".csv") && !OutputFileName.ToLower().EndsWith(".zip"))
+            {
+                throw new ApplicationException("Invalid file extension. Only csv or zip allowed.");
+            }
+        }
+
         private void ValidateExtractDataExtensionParameters()
         {
             if (string.IsNullOrWhiteSpace(DECustomerKey))
@@ -139,9 +159,9 @@ namespace FuelSDK
             {
                 throw new ApplicationException("Output file name is empty or null. Please fill output file name.");
             }
-            if (!OutputFileName.ToLower().EndsWith(".csv") && !OutputFileName.ToLower().EndsWith(".zip"))
+            if (!OutputFileName.ToLower().EndsWith(".zip"))
             {
-                throw new ApplicationException("Invalid file extension. Only csv or zip allowed.");
+                throw new ApplicationException("Invalid file extension. Only zip extension allowed, as the return data will be in individual files.");
             }
         }
 
@@ -175,7 +195,7 @@ namespace FuelSDK
                 var val = prop.GetValue(this, null).ToString();
                 if (prop.PropertyType == typeof(DateTime))
                 {
-                    val = ((DateTime)prop.GetValue(this, null)).ToString("yyyy-MM-dd hh:mm tt");
+                    val = ((DateTime)prop.GetValue(this, null)).ToString("MM/dd/yyyy hh:mm tt");
                 }
                 var eparam = new ExtractParameter
                                 {
@@ -185,7 +205,7 @@ namespace FuelSDK
                 eparams.Add(eparam);
 
             }
-           
+
             using (var scope = new OperationContextScope(AuthStub.SoapClient.InnerChannel))
             {
                 string requestId;
