@@ -135,7 +135,8 @@ namespace FuelSDK
 			_translators.Add(typeof(UnsubEvent), typeof(ETUnsubEvent));
 			_translators.Add(typeof(ETSentEvent), typeof(SentEvent));
 			_translators.Add(typeof(SentEvent), typeof(ETSentEvent));
-
+            _translators.Add(typeof(ETExtractDescription), typeof(ExtractDescription));
+		    _translators.Add(typeof(ExtractDescription), typeof(ETExtractDescription));
 
             //obselete class translation
             _translators.Add(typeof(ET_Folder), typeof(DataFolder));
