@@ -26,14 +26,16 @@ Project tree structure
 - .NET Framework 4 
 
 Dependencies:
-JWT v3.0.0
-Newtonsoft.Json v10.0.3
+- JWT v3.0.0
+- Newtonsoft.Json v10.0.3
 
 ## Installation ##
 
 Add Salesforce Marketing Cloud Fuel SDK nuget package using the following command in the package manager console:
 
-<pre> Install-Package SFMC.FuelSDK </pre>
+```batch
+Install-Package SFMC.FuelSDK
+```
 All necessary settings are in App.config.transform file.
 
 ## Getting Started ##
@@ -47,46 +49,47 @@ If you have not registered your application or you need to lookup your Applicati
 All Salesforce Marketing Cloud services exposed through the Fuel SDK begin with be prefixed with "ET". Start by working with the ETList object:
 
 Add a using statement to reference the FuelSDK's functionality:
-<pre>
-
->using FuelSDK;
+```csharp
+using FuelSDK;
+```
 
 Next, create an instance of the ETClient class:
 
->ETClient myclient = new ETClient();            
+```csharp
+ETClient myclient = new ETClient();
+```
 
 Create an instance of the Salesforce Marketing Cloud we want to work with:
 
->ETList list = new ETList();
+```csharp
+ETList list = new ETList();
+```
 
 Associate the ETClient to the object using the client property:
 
->list.authStub = myclient;
+```csharp
+list.authStub = myclient;
+```
 
 Utilize one of the ETList methods:
 
->GetReturn getFR = list.Get();
-
+```csharp
+GetReturn getFR = list.Get();
+```
 
 Print out the results for viewing
 
+```csharp
+Console.WriteLine("Get Status: " + getFR.Status.ToString());
+Console.WriteLine("Message: " + getFR.Message.ToString());
+Console.WriteLine("Code: " + getFR.Code.ToString());
+Console.WriteLine("Results Length: " + getFR.Results.Length);
 
->Console.WriteLine("Get Status: " + getFR.Status.ToString());
->
->Console.WriteLine("Message: " + getFR.Message.ToString());
->
->Console.WriteLine("Code: " + getFR.Code.ToString());
->
->Console.WriteLine("Results Length: " + getFR.Results.Length);
-
->foreach (ETList ResultList in getFR.Results) <br />
->{<br/>
->&nbsp;&nbsp;&nbsp;Console.WriteLine("--ID: " + ResultList.ID + ", Name: " + ResultList.ListName + ", Description: " + ResultList.Description);
-><br/>
->}
-</pre>
-
-
+foreach (ETList ResultList in getFR.Results)
+{
+  Console.WriteLine("--ID: " + ResultList.ID + ", Name: " + ResultList.ListName + ", Description: " + ResultList.Description);
+}
+```
 
 ## ETClient Class ##
 The ETClient class takes care of many of the required steps when accessing Salesforce Marketing Cloud's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ETClient object for each request made.
@@ -94,38 +97,47 @@ The ETClient class takes care of many of the required steps when accessing Sales
 The ETClient class takes 1 parameter which is a NameValueCollection that can be used for passing authentication information for use with SSO with a JWT or for passing ClientID/ClientSecret if you would prefer to not use the config file option. 
 
 Example passing JWT: 
-> NameValueCollection parameters = new NameValueCollection();<br>
-parameters.Add("clientId", "<your client id>");<br>
-parameters.Add("clientSecret", "<your client secret>");<br>
-parameters.Add("jwt", "JWT Value Goes Here");<br>
-parameters.Add("appSignature", "j8hj87jhf54gfk54d2lijs");<br>
-ETClient myclient = new ETClient(parameters);<br>
+```csharp
+NameValueCollection parameters = new NameValueCollection();
+parameters.Add("clientId", "<your client id>");
+parameters.Add("clientSecret", "<your client secret>");
+parameters.Add("jwt", "JWT Value Goes Here");
+parameters.Add("appSignature", "j8hj87jhf54gfk54d2lijs");
+ETClient myclient = new ETClient(parameters);
+```
 
 Example passing ClientID/ClientSecret only: 
-> NameValueCollection parameters = new NameValueCollection();<br>
-parameters.Add("clientId", "<your client id>");<br>
-parameters.Add("clientSecret", "<your client secret>");<br>
-ETClient myclient = new ETClient(parameters);<br>
+```csharp
+NameValueCollection parameters = new NameValueCollection();
+parameters.Add("clientId", "<your client id>");
+parameters.Add("clientSecret", "<your client secret>");
+ETClient myclient = new ETClient(parameters);
+```
 
 Example passing flag for sandbox environment with ClientID/ClientSecret: 
-> NameValueCollection parameters = new NameValueCollection();<br>
-parameters.Add("clientId", "<your client id>");<br>
-parameters.Add("clientSecret", "<your client secret>");<br>
-parameters.Add("sandbox", "true");<br>
-ETClient myclient = new ETClient(parameters);<br>
+```csharp
+NameValueCollection parameters = new NameValueCollection();
+parameters.Add("clientId", "<your client id>");
+parameters.Add("clientSecret", "<your client secret>");
+parameters.Add("sandbox", "true");
+ETClient myclient = new ETClient(parameters);
+```
 
 ## Responses ##
 All methods on Fuel SDK objects return an object that follows the same structure, regardless of the type of call. This object contains a common set of properties used to display details about the request.
 
-- Status: Boolean value that indicates if the call was successful
-- Code: HTTP Error Code 
-- Message: Text values containing more details in the event of an error
-- Results: Typed collection containing the results of the call.
+| Property name | Description
+| ------------- | ------------------------------------------------------------- |
+| Status        | Boolean value that indicates if the call was successful       |
+| Code          | HTTP Error Code                                               |
+| Message       | Text values containing more details in the event of an error  |
+| Results       | Typed collection containing the results of the call           |
 
 Get Methods also return an addition value to indicate if more information is available (that information can be retrieved using the GetMoreResults method):
 
-- MoreResults: Boolean value that indicates on Get requests if more data is available.
-
+| Property name | Description
+| ------------- | ---------------------------------------------------------------------- |
+| MoreResults   | Boolean value that indicates on Get requests if more data is available |
 
 ## Samples ##
 The objsamples project (included in solution) contains sample calls for all the available functionality.
