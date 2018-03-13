@@ -1,19 +1,19 @@
 FuelSDK-CSharp
 ============
 
-Salesforce Marketing Cloud Fuel SDK for C# 
+Salesforce Marketing Cloud Fuel SDK for C#
 
 ## Overview ##
-The Fuel SDK for C# provides easy access to Salesforce Marketing Cloud's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to Salesforce Marketing Cloud functionality via common collection types. 
+The Fuel SDK for C# provides easy access to Salesforce Marketing Cloud's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to Salesforce Marketing Cloud functionality via common collection types.
 
 ## New Features in Version 1.0.0 ##
-* **code refactor :** code refactored to individual class files. Classes starting with “ET_” are deprecated now and all SDK API objects start with “ET”. 
+* **code refactor :** code refactored to individual class files. Classes starting with “ET_” are deprecated now and all SDK API objects start with “ET”.
 
-Project tree structure 
-- FuelSDK-CSharp : SDK Project 
+Project tree structure
+- FuelSDK-CSharp : SDK Project
 - FuelSDK.Test   : NUnit test project
 - objsamples     : Sample/Example project
-- docs           : SDK API HTML documentation 
+- docs           : SDK API HTML documentation
 
 * **NUnit test case :** Nunit test case project added. This covers basic happy path testing. All the test cases use “ET” classes. For samples that uses “ET_” classes, please see “objsamples” project. Advanced and more comprehensive test cases will be added in future releases.
 
@@ -23,11 +23,17 @@ Project tree structure
 
 ## Requirements ##
 - .NET Studio 2013 or higher (WCF)
-- .NET Framework 4 
+- .NET Framework 4
 
 Dependencies:
 JWT v3.0.0
 Newtonsoft.Json v10.0.3
+
+## Support
+The Salesforce Marketing Cloud SDKs are community-supported projects. The SDK source code, samples, and documentation are publicly available on Github to use as-is or fork and modify for your needs. We invite everyone in the community to collaborate with us on Github and submit pull requests to help improve the source code and samples.
+* Post questions on [StackExchange](https://salesforce.stackexchange.com/questions/tagged/marketing-cloud).
+* Submit ideas and suggestions to the [Trailblazer Community](https://success.salesforce.com/ideaSearch?sort=2&filter=Marketing+Cloud).
+* File issues and feature requests here on Github.
 
 ## Installation ##
 
@@ -91,9 +97,9 @@ Print out the results for viewing
 ## ETClient Class ##
 The ETClient class takes care of many of the required steps when accessing Salesforce Marketing Cloud's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ETClient object for each request made.
 
-The ETClient class takes 1 parameter which is a NameValueCollection that can be used for passing authentication information for use with SSO with a JWT or for passing ClientID/ClientSecret if you would prefer to not use the config file option. 
+The ETClient class takes 1 parameter which is a NameValueCollection that can be used for passing authentication information for use with SSO with a JWT or for passing ClientID/ClientSecret if you would prefer to not use the config file option.
 
-Example passing JWT: 
+Example passing JWT:
 > NameValueCollection parameters = new NameValueCollection();<br>
 parameters.Add("clientId", "<your client id>");<br>
 parameters.Add("clientSecret", "<your client secret>");<br>
@@ -101,13 +107,13 @@ parameters.Add("jwt", "JWT Value Goes Here");<br>
 parameters.Add("appSignature", "j8hj87jhf54gfk54d2lijs");<br>
 ETClient myclient = new ETClient(parameters);<br>
 
-Example passing ClientID/ClientSecret only: 
+Example passing ClientID/ClientSecret only:
 > NameValueCollection parameters = new NameValueCollection();<br>
 parameters.Add("clientId", "<your client id>");<br>
 parameters.Add("clientSecret", "<your client secret>");<br>
 ETClient myclient = new ETClient(parameters);<br>
 
-Example passing flag for sandbox environment with ClientID/ClientSecret: 
+Example passing flag for sandbox environment with ClientID/ClientSecret:
 > NameValueCollection parameters = new NameValueCollection();<br>
 parameters.Add("clientId", "<your client id>");<br>
 parameters.Add("clientSecret", "<your client secret>");<br>
@@ -118,7 +124,7 @@ ETClient myclient = new ETClient(parameters);<br>
 All methods on Fuel SDK objects return an object that follows the same structure, regardless of the type of call. This object contains a common set of properties used to display details about the request.
 
 - Status: Boolean value that indicates if the call was successful
-- Code: HTTP Error Code 
+- Code: HTTP Error Code
 - Message: Text values containing more details in the event of an error
 - Results: Typed collection containing the results of the call.
 
