@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using Newtonsoft.Json.Linq;
 
 namespace FuelSDK
@@ -38,7 +39,8 @@ namespace FuelSDK
         /// </summary>
 		public ETCampaign()
 		{
-			Endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{ID}";
+            var configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+            Endpoint = configSection.RestEndPoint + "/hub/v1/campaigns/{ID}";
 			URLProperties = new[] { "ID" };
 			RequiredURLProperties = new string[0];
 		}

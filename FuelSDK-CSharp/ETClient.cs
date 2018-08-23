@@ -64,6 +64,10 @@ namespace FuelSDK
                 {
                     configSection.AuthenticationEndPoint = parameters["authEndPoint"];
                 }
+                if (parameters.AllKeys.Contains("restEndPoint"))
+                {
+                    configSection.RestEndPoint = parameters["restEndPoint"];
+                }
             }
 
             if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
@@ -200,6 +204,7 @@ namespace FuelSDK
 
         public void RefreshToken(bool force = false)
         {
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
             if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
                 return;
