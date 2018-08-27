@@ -204,6 +204,7 @@ namespace FuelSDK
 
         public void RefreshToken(bool force = false)
         {
+            // workaround to support TLS 1.2 in .NET 4.0 (source: https://blogs.perficient.com/2016/04/28/tsl-1-2-and-net-support/)
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
             if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
