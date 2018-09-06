@@ -37,7 +37,7 @@ namespace FuelSDK.Test
                 CustomerKey = Guid.NewGuid().ToString(),
                 Type = "Email",
                 CampaignID = campaign.ID.ToString(),
-                //ID = 32798
+                ID = 32798
 			};
 
 			var result = assetObj.Post();
