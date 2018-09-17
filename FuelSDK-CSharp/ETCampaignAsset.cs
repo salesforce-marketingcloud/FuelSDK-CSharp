@@ -34,8 +34,7 @@ namespace FuelSDK
         /// </summary>
 		public ETCampaignAsset()
 		{
-            var configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
-            Endpoint = configSection.RestEndPoint + "/hub/v1/campaigns/{CampaignID}/assets/{ID}";
+            Endpoint = ConfigUtil.GetFuelSDKConfigSection().RestEndPoint + "/hub/v1/campaigns/{CampaignID}/assets/{ID}";
 			URLProperties = new[] { "CampaignID", "ID" };
 			RequiredURLProperties = new[] { "CampaignID" };
 		}
