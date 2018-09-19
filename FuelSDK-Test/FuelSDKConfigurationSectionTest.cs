@@ -15,7 +15,6 @@ namespace FuelSDK.Test
         private readonly string missingRequiredClientSecretConfigFileName = "missingRequiredClientSecretProperty.config";
         private readonly string requiredPropertiesOnlyConfigFileName = "requiredPropertiesOnly.config";
         private readonly string allPropertiesSetConfigFileName = "allPropertiesSet.config";
-        private string configFilePath;
 
         [Test()]
         public void NoCustomConfigSection()
@@ -78,38 +77,11 @@ namespace FuelSDK.Test
             Assert.AreEqual(section.RestEndPoint, "https://restendpoint.com");
         }
 
-        [TearDown]
-        public void TearDown()
+        private FuelSDKConfigurationSection GetCustomConfigurationSectionFromConfigFile(string configFileName)
         {
-            if (File.Exists(configFilePath))
-            {
-                File.Delete(configFilePath);
-            }
-        }
-
-        private void CreateConfigFileFromResource(string resourceFileName)
-        {
-            Assembly a = Assembly.GetExecutingAssembly();
-            using (Stream s = a.GetManifestResourceStream("FuelSDK.Test.ConfigFiles." + resourceFileName))
-            {
-                using (StreamReader sr = new StreamReader(s))
-                {
-                    configFilePath = Path.Combine(Path.GetTempPath(), resourceFileName);
-                    using (StreamWriter sw = File.CreateText(configFilePath))
-                    {
-                        sw.Write(sr.ReadToEnd());
-                        sw.Flush();
-                    }
-                }
-            }
-        }
-
-        private FuelSDKConfigurationSection GetCustomConfigurationSectionFromConfigFile(string resourceFileName)
-        {
-            CreateConfigFileFromResource(resourceFileName);
-
             ExeConfigurationFileMap fileMap = new ExeConfigurationFileMap();
-            fileMap.ExeConfigFilename = configFilePath;
+            fileMap.ExeConfigFilename = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ConfigFiles", configFileName);
+
             Configuration config
               = ConfigurationManager.OpenMappedExeConfiguration(fileMap,
                 ConfigurationUserLevel.None);

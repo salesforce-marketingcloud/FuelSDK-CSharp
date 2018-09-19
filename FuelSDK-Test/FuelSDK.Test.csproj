@@ -63,12 +63,24 @@
     <None Include="App.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <EmbeddedResource Include="ConfigFiles\allPropertiesSet.config" />
-    <EmbeddedResource Include="ConfigFiles\empty.config" />
-    <EmbeddedResource Include="ConfigFiles\missingRequiredAppSignatureProperty.config" />
-    <EmbeddedResource Include="ConfigFiles\missingRequiredClientIdProperty.config" />
-    <EmbeddedResource Include="ConfigFiles\missingRequiredClientSecretProperty.config" />
-    <EmbeddedResource Include="ConfigFiles\requiredPropertiesOnly.config" />
+    <None Include="ConfigFiles\allPropertiesSet.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\empty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredAppSignatureProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredClientIdProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredClientSecretProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\requiredPropertiesOnly.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="App.config.transform">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
