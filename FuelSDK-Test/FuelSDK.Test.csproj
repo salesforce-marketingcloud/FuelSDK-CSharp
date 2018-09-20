@@ -32,9 +32,9 @@
       <HintPath>..\packages\NUnit.3.7.1\lib\net40\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NUnit3.TestAdapter, Version=3.10.0.21, Culture=neutral, PublicKeyToken=4cb40d35494691ac, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\NUnit3TestAdapter.3.10.0\build\net35\NUnit3.TestAdapter.dll</HintPath>
+    <Reference Include="NUnit3.TestAdapter">
+      <HintPath>..\packages\NUnit3TestAdapter.3.7.0\tools\NUnit3.TestAdapter.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -63,12 +63,24 @@
     <None Include="App.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <EmbeddedResource Include="ConfigFiles\allPropertiesSet.config" />
-    <EmbeddedResource Include="ConfigFiles\empty.config" />
-    <EmbeddedResource Include="ConfigFiles\missingRequiredAppSignatureProperty.config" />
-    <EmbeddedResource Include="ConfigFiles\missingRequiredClientIdProperty.config" />
-    <EmbeddedResource Include="ConfigFiles\missingRequiredClientSecretProperty.config" />
-    <EmbeddedResource Include="ConfigFiles\requiredPropertiesOnly.config" />
+    <None Include="ConfigFiles\allPropertiesSet.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\empty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredAppSignatureProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredClientIdProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredClientSecretProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\requiredPropertiesOnly.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
     <None Include="App.config.transform">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
