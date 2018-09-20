@@ -48,7 +48,7 @@ namespace FuelSDK
 			get { return (string)this["soapEndPoint"]; }
 			set { this["soapEndPoint"] = value; }
 		}
-		[ConfigurationProperty("authEndPoint", DefaultValue = "https://auth-qa.exacttargetapis.com/v1/requestToken?legacy=1")]
+		[ConfigurationProperty("authEndPoint", DefaultValue = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1")]
 		public string AuthenticationEndPoint
 		{
 			get { return (string)this["authEndPoint"]; }
