@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Configuration;
 using Newtonsoft.Json.Linq;
 
 namespace FuelSDK
