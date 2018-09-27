@@ -6,6 +6,26 @@ Salesforce Marketing Cloud Fuel SDK for C#
 ## Overview ##
 The Fuel SDK for C# provides easy access to Salesforce Marketing Cloud's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to Salesforce Marketing Cloud functionality via common collection types. 
 
+## New Features in Version 1.1.0 ##
+* **configurable Tenant Specific Endpoints :** The previously hardcoded endpoints in the **ETCampaign**, **ETCampaignAsset** and **ETEndpoint** classes were removed, and now the user of the SDK is able to configure them through a **App.config** file OR using the “**parameters**” **ETClient** constructor parameter as in the previous version of the SDK. The user of the SDK has to make a copy of the **App.config.transform** file which is found in the **FuelSDK-CSharp** folder, place it in the same folder and rename it to **App.config**. The structure of this file will be the following: 
+
+<pre> 
+&lt;configuration&gt;
+  &lt;configSections&gt;
+    &lt;section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" /&gt;
+  &lt;/configSections&gt;
+  &lt;fuelSDK 
+    appSignature="&lt;appSignature&gt;" 
+    clientId="&lt;clientId&gt;" 
+    clientSecret="&lt;clientSecret&gt;" 
+    authEndPoint="&lt;authenticationEndPoint&gt;" 
+    soapEndPoint="&lt;soapEndPoint&gt;" 
+    restEndPoint="&lt;restEndPoint>" /&gt;
+&lt;/configuration&gt;
+
+</pre>
+
+
 ## New Features in Version 1.0.0 ##
 * **code refactor :** code refactored to individual class files. Classes starting with “ET_” are deprecated now and all SDK API objects start with “ET”. 
 
@@ -20,6 +40,12 @@ Project tree structure
 * **API docs :** added API documentation using doxygen documentation framework. (under docs/ directory)
 
 * **JWT :** JWT.cs is removed from the project and added as dependency.
+
+Not specifying the **appSignature** field in the **App.config** file will throw an error if you try to instantiate the **ETClient** class using a **jwt**.
+
+Not specifying the **authEndPoint**, **soapEndPoint** and the **restEndPoint** in the **App.config** file will make the SDK use the default values of these fields that are provided in the **FuelSDKConfigurationSection** class.
+
+Not specifying the **clientId** and the **clientSecret** fields in the **App.config** file will throw an error if you try to instantiate the **ETClient** class.
 
 ## Requirements ##
 - .NET Studio 2013 or higher (WCF)
@@ -39,7 +65,7 @@ All necessary settings are in App.config.transform file.
 ## Getting Started ##
 The FuelSDK-CSharp solution file includes two projects. One for the actual SDK and one for a web based testing app as an example of how to use the SDK dll and other dependent files.
 
-Rename the  FuelSDK_config.xml.template file in the objsamples project to FuelSDK_config.xml, then edit so you can input the ClientID and Client Secret values provided when you registered your application. If you are building a HubExchange application for the Interactive Marketing Hub then, you must also provide the Application Signature (appsignature). Only change the value for the defaultwsdl configuration item if instructed by Salesforce Marketing Cloud.
+Rename the **App.config.transform** file in the objsamples project to **App.config**, then edit so you can input the ClientID and Client Secret values provided when you registered your application. If you are building a HubExchange application for the Interactive Marketing Hub then, you must also provide the Application Signature (appsignature). Only change the value for the defaultwsdl configuration item if instructed by Salesforce Marketing Cloud.
 
 If you have not registered your application or you need to lookup your Application Key or Application Signature values, please go to App Center at [Code@: Salesforce Marketing Cloud's Developer Community]( https://appcenter-auth.s1.marketingcloudapps.com	 "CODE@").
 
@@ -131,7 +157,7 @@ Get Methods also return an addition value to indicate if more information is ava
 The objsamples project (included in solution) contains sample calls for all the available functionality.
 
 ## Copyright and license ##
-Copyright (c) 2017 Salesforce Marketing Cloud
+Copyright (c) 2018 Salesforce Marketing Cloud
 
 Licensed under the MIT License (the "License"); you may not use this work except in compliance with the License. You may obtain a copy of the License in the COPYING file.
 
