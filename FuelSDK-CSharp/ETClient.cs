@@ -21,6 +21,8 @@ namespace FuelSDK
     public class ETClient
     {
         public const string SDKVersion = "FuelSDK-C#-v1.1.0";
+        private const string defaultSoapEndpoint = "https://webservice.s4.exacttarget.com/Service.asmx";
+
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
         public SoapClient SoapClient { get; private set; }
@@ -31,7 +33,12 @@ namespace FuelSDK
         public string EnterpriseId { get; private set; }
         public string OrganizationId { get; private set; }
         public string Stack { get; private set; }
-        private string authEndPoint { get; set; }
+
+        private static DateTime soapEndPointExpiration;
+        private static DateTime stackKeyExpiration;
+        private static string fetchedSoapEndpoint;
+        private const long cacheDurationInMinutes = 10;
+
         public class RefreshState
         {
             public string RefreshKey { get; set; }
@@ -106,15 +113,9 @@ namespace FuelSDK
                 organizationFind = true;
             }
 
-            // Find the appropriate endpoint for the acccount
-            var grSingleEndpoint = new ETEndpoint { AuthStub = this, Type = "soap" }.Get();
-            if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
-                configSection.SoapEndPoint = ((ETEndpoint)grSingleEndpoint.Results[0]).URL;
-            else
-                throw new Exception("Unable to determine stack using /platform/v1/endpoints: " + grSingleEndpoint.Message);
+            FetchSoapEndpoint();
 
             // Create the SOAP binding for call with Oauth.
-
             SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
             SoapClient.ClientCredentials.UserName.UserName = "*";
             SoapClient.ClientCredentials.UserName.Password = "*";
@@ -140,9 +141,42 @@ namespace FuelSDK
                     {
                         EnterpriseId = results[0].Client.EnterpriseID.ToString();
                         OrganizationId = results[0].ID.ToString();
-                        Stack = GetStackFromSoapEndPoint(new Uri(configSection.SoapEndPoint));
+                        Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
                     }
                 }
+        }
+
+        internal string FetchRestAuth()
+        {
+            var returnedRestAuthEndpoint = new ETEndpoint { AuthStub = this, Type = "restAuth" }.Get();
+            if (returnedRestAuthEndpoint.Status && returnedRestAuthEndpoint.Results.Length == 1)
+                return ((ETEndpoint)returnedRestAuthEndpoint.Results[0]).URL;
+            else
+                throw new Exception("REST auth endpoint could not be determined");
+        }
+
+        private void FetchSoapEndpoint()
+        {
+            if (string.IsNullOrEmpty(configSection.SoapEndPoint) || (DateTime.Now > soapEndPointExpiration && fetchedSoapEndpoint != null))
+            {
+                try
+                {
+                    var grSingleEndpoint = new ETEndpoint { AuthStub = this, Type = "soap" }.Get();
+                    if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
+                    {
+                        // Find the appropriate endpoint for the acccount
+                        configSection.SoapEndPoint = ((ETEndpoint)grSingleEndpoint.Results[0]).URL;
+                        fetchedSoapEndpoint = configSection.SoapEndPoint;
+                        soapEndPointExpiration = DateTime.Now.AddMinutes(cacheDurationInMinutes);
+                    }
+                    else
+                        configSection.SoapEndPoint = defaultSoapEndpoint;
+                }
+                catch
+                {
+                    configSection.SoapEndPoint = defaultSoapEndpoint;
+                }
+            }
         }
 
         private string DecodeJWT(string jwt, string key)
@@ -155,14 +189,6 @@ namespace FuelSDK
 
             var json = decoder.Decode(jwt, key, true);
             return json;
-        }
-
-        private string GetStackFromSoapEndPoint(Uri uri)
-        {
-            var parts = uri.Host.Split('.');
-            if (parts.Length < 2 || !parts[0].Equals("webservice", StringComparison.OrdinalIgnoreCase))
-                throw new Exception("not exacttarget.com");
-            return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
         }
 
         private static Binding GetSoapBinding()
@@ -208,10 +234,10 @@ namespace FuelSDK
                 return;
 
             // Get an internalAuthToken using clientId and clientSecret
-            var strURL = configSection.AuthenticationEndPoint;
+            var authEndpoint = new AuthEndpointUriBuilder(configSection).Build();
 
             // Build the request
-            var request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
+            var request = (HttpWebRequest)WebRequest.Create(authEndpoint.Trim());
             request.Method = "POST";
             request.ContentType = "application/json";
             request.UserAgent = SDKVersion;

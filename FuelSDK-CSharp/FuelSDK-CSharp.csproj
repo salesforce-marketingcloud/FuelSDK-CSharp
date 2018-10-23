@@ -78,6 +78,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AuthEndpointUriBuilder.cs" />
     <Compile Include="ConfigUtil.cs" />
     <Compile Include="ETClient.cs" />
     <Compile Include="ExactTargetSOAP.cs" />
@@ -133,6 +134,8 @@
     <Compile Include="ETCampaignAsset.cs" />
     <Compile Include="ETEndpoint.cs" />
     <Compile Include="ExecuteAPIResponse.cs" />
+    <Compile Include="StackKey.cs" />
+    <Compile Include="UserInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />

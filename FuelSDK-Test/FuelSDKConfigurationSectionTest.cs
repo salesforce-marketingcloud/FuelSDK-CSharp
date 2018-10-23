@@ -1,21 +1,12 @@
 ﻿using NUnit.Framework;
 using System.Configuration;
-using System.IO;
 using System.Linq;
-using System.Reflection;
 
 namespace FuelSDK.Test
 {
     [TestFixture]
-    class FuelSDKConfigurationSectionTest
+    class FuelSDKConfigurationSectionTest : CustomConfigSectionBasedTest
     {
-        private readonly string emptyConfigFileName = "empty.config";
-        private readonly string missingRequiredAppSignaturePropertyConfigFileName = "missingRequiredAppSignatureProperty.config";
-        private readonly string missingRequiredClientIdConfigFileName = "missingRequiredClientIdProperty.config";
-        private readonly string missingRequiredClientSecretConfigFileName = "missingRequiredClientSecretProperty.config";
-        private readonly string requiredPropertiesOnlyConfigFileName = "requiredPropertiesOnly.config";
-        private readonly string allPropertiesSetConfigFileName = "allPropertiesSet.config";
-
         [Test()]
         public void NoCustomConfigSection()
         {
@@ -45,8 +36,7 @@ namespace FuelSDK.Test
         public void MissingSoapEndPointPropertyFromConfigSection()
         {
             FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(requiredPropertiesOnlyConfigFileName);
-            var attribute = section.GetType().GetProperty("SoapEndPoint").GetCustomAttributes(typeof(ConfigurationPropertyAttribute), false).Single() as ConfigurationPropertyAttribute;
-            Assert.AreEqual(section.SoapEndPoint, attribute.DefaultValue);
+            Assert.AreEqual(string.Empty, section.SoapEndPoint);
         }
 
         [Test()]
@@ -75,18 +65,6 @@ namespace FuelSDK.Test
             Assert.AreEqual(section.SoapEndPoint, "https://soapendpoint.com");
             Assert.AreEqual(section.AuthenticationEndPoint, "https://authendpoint.com");
             Assert.AreEqual(section.RestEndPoint, "https://restendpoint.com");
-        }
-
-        private FuelSDKConfigurationSection GetCustomConfigurationSectionFromConfigFile(string configFileName)
-        {
-            ExeConfigurationFileMap fileMap = new ExeConfigurationFileMap();
-            fileMap.ExeConfigFilename = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ConfigFiles", configFileName);
-
-            Configuration config
-              = ConfigurationManager.OpenMappedExeConfiguration(fileMap,
-                ConfigurationUserLevel.None);
-
-            return config.GetSection("fuelSDK") as FuelSDKConfigurationSection;
         }
     }
 }
