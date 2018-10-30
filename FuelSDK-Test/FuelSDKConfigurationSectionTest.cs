@@ -43,7 +43,6 @@ namespace FuelSDK.Test
         public void MissingAuthEndPointPropertyFromConfigSection()
         {
             FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(requiredPropertiesOnlyConfigFileName);
-            var attribute = section.GetType().GetProperty("AuthenticationEndPoint").GetCustomAttributes(typeof(ConfigurationPropertyAttribute), false).Single() as ConfigurationPropertyAttribute;
             Assert.AreEqual(string.Empty, section.AuthenticationEndPoint);
         }
 
@@ -51,7 +50,6 @@ namespace FuelSDK.Test
         public void MissingRestEndPointPropertyFromConfigSection()
         {
             FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(requiredPropertiesOnlyConfigFileName);
-            var attribute = section.GetType().GetProperty("RestEndPoint").GetCustomAttributes(typeof(ConfigurationPropertyAttribute), false).Single() as ConfigurationPropertyAttribute;
             Assert.AreEqual(string.Empty, section.RestEndPoint);
         }
 
