@@ -21,7 +21,6 @@ namespace FuelSDK
     public class ETClient
     {
         public const string SDKVersion = "FuelSDK-C#-v1.1.0";
-        private const string defaultSoapEndpoint = "https://webservice.s4.exacttarget.com/Service.asmx";
 
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
@@ -53,6 +52,9 @@ namespace FuelSDK
         {
             // Get configuration file and set variables
             configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+            configSection = configSection
+                .WithDefaultAuthEndpoint(DefaultEndpoints.Auth)
+                .WithDefaultRestEndpoint(DefaultEndpoints.Rest);
             configSection = (configSection != null ? (FuelSDKConfigurationSection)configSection.Clone() : new FuelSDKConfigurationSection());
             if (parameters != null)
             {
@@ -164,17 +166,17 @@ namespace FuelSDK
                     var grSingleEndpoint = new ETEndpoint { AuthStub = this, Type = "soap" }.Get();
                     if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
                     {
-                        // Find the appropriate endpoint for the acccount
+                        // Find the appropriate endpoint for the account
                         configSection.SoapEndPoint = ((ETEndpoint)grSingleEndpoint.Results[0]).URL;
                         fetchedSoapEndpoint = configSection.SoapEndPoint;
                         soapEndPointExpiration = DateTime.Now.AddMinutes(cacheDurationInMinutes);
                     }
                     else
-                        configSection.SoapEndPoint = defaultSoapEndpoint;
+                        configSection.SoapEndPoint = DefaultEndpoints.Soap;
                 }
                 catch
                 {
-                    configSection.SoapEndPoint = defaultSoapEndpoint;
+                    configSection.SoapEndPoint = DefaultEndpoints.Soap;
                 }
             }
         }

@@ -66,6 +66,13 @@
   <ItemGroup>
     <None Include="App.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="ConfigFiles\allPropertiesSetButRestEndpointIsEmpty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\allPropertiesSetButAuthEndpointIsEmpty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="ConfigFiles\authEndpointWithMultipleQueryParamsIncludingLegacyParam.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

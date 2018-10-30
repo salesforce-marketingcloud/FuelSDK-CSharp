@@ -52,7 +52,7 @@ namespace FuelSDK
         /// Gets or sets the authentification end point.
         /// </summary>
         /// <value>The authentification end point.</value>
-        [ConfigurationProperty("authEndPoint", DefaultValue = "https://auth.exacttargetapis.com/v1/requestToken?legacy=1")]
+        [ConfigurationProperty("authEndPoint")]
 		public string AuthenticationEndPoint
 		{
 			get { return (string)this["authEndPoint"]; }
@@ -62,7 +62,7 @@ namespace FuelSDK
         /// Gets or sets the REST end point.
         /// </summary>
         /// <value>The REST end point.</value>
-        [ConfigurationProperty("restEndPoint", DefaultValue = "https://www.exacttargetapis.com")]
+        [ConfigurationProperty("restEndPoint")]
         public string RestEndPoint
         {
             get { return (string)this["restEndPoint"]; }
@@ -84,5 +84,30 @@ namespace FuelSDK
 		{
 			return false;
 		}
+
+        /// <summary>
+        /// Sets the AuthenticationEndPoint to the default value if it is not set and returns the updated instance.
+        /// </summary>
+        /// <param name="defaultAuthEndpoint">The default auth endpoint</param>
+        /// <returns>The updated <see cref="FuelSDKConfigurationSection"/> instance</returns>
+	    public FuelSDKConfigurationSection WithDefaultAuthEndpoint(string defaultAuthEndpoint)
+	    {
+	        if (string.IsNullOrEmpty(AuthenticationEndPoint))
+	        {
+	            AuthenticationEndPoint = defaultAuthEndpoint;
+	        }
+
+	        return this;
+	    }
+
+	    public FuelSDKConfigurationSection WithDefaultRestEndpoint(string defaultRestEndpoint)
+	    {
+	        if (string.IsNullOrEmpty(RestEndPoint))
+	        {
+	            this.RestEndPoint = defaultRestEndpoint;
+	        }
+
+	        return this;
+	    }
 	}
 }

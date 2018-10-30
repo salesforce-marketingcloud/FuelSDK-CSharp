@@ -44,7 +44,7 @@ namespace FuelSDK.Test
         {
             FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(requiredPropertiesOnlyConfigFileName);
             var attribute = section.GetType().GetProperty("AuthenticationEndPoint").GetCustomAttributes(typeof(ConfigurationPropertyAttribute), false).Single() as ConfigurationPropertyAttribute;
-            Assert.AreEqual(section.AuthenticationEndPoint, attribute.DefaultValue);
+            Assert.AreEqual(string.Empty, section.AuthenticationEndPoint);
         }
 
         [Test()]
@@ -52,7 +52,7 @@ namespace FuelSDK.Test
         {
             FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(requiredPropertiesOnlyConfigFileName);
             var attribute = section.GetType().GetProperty("RestEndPoint").GetCustomAttributes(typeof(ConfigurationPropertyAttribute), false).Single() as ConfigurationPropertyAttribute;
-            Assert.AreEqual(section.RestEndPoint, attribute.DefaultValue);
+            Assert.AreEqual(string.Empty, section.RestEndPoint);
         }
 
         [Test()]
@@ -63,6 +63,36 @@ namespace FuelSDK.Test
             Assert.AreEqual(section.ClientId, "abc");
             Assert.AreEqual(section.ClientSecret, "cde");
             Assert.AreEqual(section.SoapEndPoint, "https://soapendpoint.com");
+            Assert.AreEqual(section.AuthenticationEndPoint, "https://authendpoint.com");
+            Assert.AreEqual(section.RestEndPoint, "https://restendpoint.com");
+        }
+
+        [Test]
+        public void AllPropertiesSetButAuthEndpointIsEmpty()
+        {
+            FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(allPropertiesSetButAuthEndpointIsEmptyConfigFileName);
+            var sectionWithDefaultAuthEndpoint = section.WithDefaultAuthEndpoint(DefaultEndpoints.Auth);
+
+            Assert.AreEqual(DefaultEndpoints.Auth, sectionWithDefaultAuthEndpoint.AuthenticationEndPoint);
+        }
+
+        [Test]
+        public void AllPropertiesSetButRestEndpointIsEmpty()
+        {
+            FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(allPropertiesSetButRestEndpointIsEmptyConfigFileName);
+            var sectionWithDefaultRestEndpoint = section.WithDefaultRestEndpoint(DefaultEndpoints.Rest);
+
+            Assert.AreEqual(DefaultEndpoints.Rest, sectionWithDefaultRestEndpoint.RestEndPoint);
+        }
+
+        [Test]
+        public void WithDefaultsDoesNotOverwriteValuesSetInConfig()
+        {
+            FuelSDKConfigurationSection section = GetCustomConfigurationSectionFromConfigFile(allPropertiesSetConfigFileName);
+            section = section
+                .WithDefaultRestEndpoint(DefaultEndpoints.Rest)
+                .WithDefaultAuthEndpoint(DefaultEndpoints.Auth);
+
             Assert.AreEqual(section.AuthenticationEndPoint, "https://authendpoint.com");
             Assert.AreEqual(section.RestEndPoint, "https://restendpoint.com");
         }

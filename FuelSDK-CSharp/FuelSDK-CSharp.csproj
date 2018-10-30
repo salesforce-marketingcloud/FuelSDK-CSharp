@@ -80,6 +80,7 @@
   <ItemGroup>
     <Compile Include="AuthEndpointUriBuilder.cs" />
     <Compile Include="ConfigUtil.cs" />
+    <Compile Include="DefaultEndpoints.cs" />
     <Compile Include="ETClient.cs" />
     <Compile Include="ExactTargetSOAP.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

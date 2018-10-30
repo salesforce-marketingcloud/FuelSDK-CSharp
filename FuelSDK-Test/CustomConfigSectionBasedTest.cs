@@ -12,6 +12,8 @@ namespace FuelSDK.Test
         protected readonly string missingRequiredClientSecretConfigFileName = "missingRequiredClientSecretProperty.config";
         protected readonly string requiredPropertiesOnlyConfigFileName = "requiredPropertiesOnly.config";
         protected readonly string allPropertiesSetConfigFileName = "allPropertiesSet.config";
+        protected readonly string allPropertiesSetButAuthEndpointIsEmptyConfigFileName = "allPropertiesSetButAuthEndpointIsEmpty.config";
+        protected readonly string allPropertiesSetButRestEndpointIsEmptyConfigFileName = "allPropertiesSetButRestEndpointIsEmpty.config";
         protected readonly string authEndpointMissingLegacyQueryParamFileName = "authEndpointMissingLegacyQueryParam.config";
         protected readonly string authEndpointWithLegacyQueryParamFileName = "authEndpointWithLegacyQueryParam.config";
         protected readonly string authEndpointWithMultipleQueryParamsButMissingLegacyParamFileName = "authEndpointWithMultipleQueryParamsButMissingLegacyParam.config";
