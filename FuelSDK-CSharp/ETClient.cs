@@ -52,10 +52,10 @@ namespace FuelSDK
         {
             // Get configuration file and set variables
             configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+            configSection = (configSection != null ? (FuelSDKConfigurationSection)configSection.Clone() : new FuelSDKConfigurationSection());
             configSection = configSection
                 .WithDefaultAuthEndpoint(DefaultEndpoints.Auth)
                 .WithDefaultRestEndpoint(DefaultEndpoints.Rest);
-            configSection = (configSection != null ? (FuelSDKConfigurationSection)configSection.Clone() : new FuelSDKConfigurationSection());
             if (parameters != null)
             {
                 if (parameters.AllKeys.Contains("appSignature"))
