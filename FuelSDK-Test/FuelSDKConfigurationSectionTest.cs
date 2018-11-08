@@ -1,6 +1,5 @@
 ﻿using NUnit.Framework;
 using System.Configuration;
-using System.Linq;
 
 namespace FuelSDK.Test
 {
@@ -93,6 +92,21 @@ namespace FuelSDK.Test
 
             Assert.AreEqual(section.AuthenticationEndPoint, "https://authendpoint.com");
             Assert.AreEqual(section.RestEndPoint, "https://restendpoint.com");
+        }
+
+        [Test]
+        public void ModifyingAClonedConfigSectionAffectsTheOriginalSectionAndAnyNewInstance()
+        {
+            var section = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+            var clonedSection = (FuelSDKConfigurationSection)section.Clone();
+
+            clonedSection.SoapEndPoint = "https://soapendpoint.com";
+            var newSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
+
+            Assert.AreEqual(object.ReferenceEquals(section, clonedSection), false);
+            Assert.AreNotSame(section, clonedSection);
+            Assert.AreEqual(section.SoapEndPoint, clonedSection.SoapEndPoint);
+            Assert.AreEqual(section.SoapEndPoint, newSection.SoapEndPoint);
         }
     }
 }
