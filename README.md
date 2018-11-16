@@ -7,7 +7,7 @@ Salesforce Marketing Cloud Fuel SDK for C#
 The Fuel SDK for C# provides easy access to Salesforce Marketing Cloud's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to Salesforce Marketing Cloud functionality via common collection types. 
 
 ## New Features in Version 1.1.0 ##
-* **configurable Tenant Specific Endpoints :** The previously hardcoded endpoints in the **ETCampaign**, **ETCampaignAsset** and **ETEndpoint** classes were removed, and now the user of the SDK is able to configure them through a **App.config** file OR using the “**parameters**” **ETClient** constructor parameter as in the previous version of the SDK. The user of the SDK has to make a copy of the **App.config.transform** file which is found in the **FuelSDK-CSharp** folder, place it in the same folder and rename it to **App.config**. The structure of this file will be the following: 
+* **Added support for your tenant's endpoints [More Details](https://developer.salesforce.com/docs/atlas.en-us.mc-apis.meta/mc-apis/your-subdomain-tenant-specific-endpoints.htm) :** The user of the SDK can now configure them through a **App.config** file OR using the “**parameters**” **ETClient** constructor parameter as in the previous version of the SDK. The user of the SDK has to make a copy of the **App.config.transform** file which is found in the **FuelSDK-CSharp** folder, place it in the same folder and rename it to **App.config**. The structure of this file will be the following: 
 
 <pre> 
 &lt;configuration&gt;
