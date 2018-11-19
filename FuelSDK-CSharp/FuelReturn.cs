@@ -410,11 +410,11 @@ namespace FuelSDK
 			client.RefreshToken();
 			using (var scope = new OperationContextScope(client.SoapClient.InnerChannel))
 			{
-				// Add oAuth token to SOAP header.
-				XNamespace ns = "http://exacttarget.com";
-				var oauthElement = new XElement(ns + "oAuthToken", client.InternalAuthToken);
-				var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-				OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+                // Add oAuth token to SOAP header.
+                XNamespace ns = "http://exacttarget.com";
+                var oauthElement = new XElement(ns + "oAuthToken", client.InternalAuthToken);
+                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
 				var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
 				OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
@@ -426,16 +426,6 @@ namespace FuelSDK
 				Code = (Status ? 200 : 0);
 				MoreResults = (response.OverallStatus == "MoreDataAvailable");
 				Message = (response.OverallStatusMessage ?? string.Empty);
-
-				string r;
-				APIObject[] a;
-				var d = client.SoapClient.Retrieve(
-					new RetrieveRequest
-					{
-						ObjectType = "BusinessUnit",
-						Properties = new[] { "ID", "Name" }
-					}, out r, out a
-				);
 
 				return response.Results;
 			}
@@ -479,12 +469,12 @@ namespace FuelSDK
 				foreach (string urlProp in obj.URLProperties)
 					completeURL = completeURL.Replace("{" + urlProp + "}", string.Empty);
 
-			completeURL += "?access_token=" + obj.AuthStub.AuthToken;
-			if (obj.Page != 0)
-				completeURL += "&page=" + obj.Page.ToString();
+            if (obj.Page.HasValue && obj.Page.Value > 0)
+                completeURL += "?page=" + obj.Page.ToString();
 
-			var request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
-			request.Method = method;
+            var request = (HttpWebRequest)WebRequest.Create(completeURL.Trim());
+            request.Headers.Add("Authorization", "Bearer " + obj.AuthStub.AuthToken);
+            request.Method = method;
 			request.ContentType = "application/json";
 			request.UserAgent = ETClient.SDKVersion;
 

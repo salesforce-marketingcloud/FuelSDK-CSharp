@@ -42,18 +42,32 @@ namespace FuelSDK
         /// Gets or sets the SOAP end point.
         /// </summary>
         /// <value>The SOAP end point.</value>
-		[ConfigurationProperty("soapEndPoint", DefaultValue = "https://webservice.s4.exacttarget.com/Service.asmx")]
+		[ConfigurationProperty("soapEndPoint")]
 		public string SoapEndPoint
 		{
 			get { return (string)this["soapEndPoint"]; }
 			set { this["soapEndPoint"] = value; }
 		}
-		[ConfigurationProperty("authEndPoint", DefaultValue = "https://auth-qa.exacttargetapis.com/v1/requestToken?legacy=1")]
+        /// <summary>
+        /// Gets or sets the authentification end point.
+        /// </summary>
+        /// <value>The authentification end point.</value>
+        [ConfigurationProperty("authEndPoint")]
 		public string AuthenticationEndPoint
 		{
 			get { return (string)this["authEndPoint"]; }
 			set { this["authEndPoint"] = value; }
 		}
+        /// <summary>
+        /// Gets or sets the REST end point.
+        /// </summary>
+        /// <value>The REST end point.</value>
+        [ConfigurationProperty("restEndPoint")]
+        public string RestEndPoint
+        {
+            get { return (string)this["restEndPoint"]; }
+            set { this["restEndPoint"] = value; }
+        }
         /// <summary>
         /// Clone this instance.
         /// </summary>
@@ -70,5 +84,30 @@ namespace FuelSDK
 		{
 			return false;
 		}
+
+        /// <summary>
+        /// Sets the AuthenticationEndPoint to the default value if it is not set and returns the updated instance.
+        /// </summary>
+        /// <param name="defaultAuthEndpoint">The default auth endpoint</param>
+        /// <returns>The updated <see cref="FuelSDKConfigurationSection"/> instance</returns>
+	    public FuelSDKConfigurationSection WithDefaultAuthEndpoint(string defaultAuthEndpoint)
+	    {
+	        if (string.IsNullOrEmpty(AuthenticationEndPoint))
+	        {
+	            AuthenticationEndPoint = defaultAuthEndpoint;
+	        }
+
+	        return this;
+	    }
+
+	    public FuelSDKConfigurationSection WithDefaultRestEndpoint(string defaultRestEndpoint)
+	    {
+	        if (string.IsNullOrEmpty(RestEndPoint))
+	        {
+	            this.RestEndPoint = defaultRestEndpoint;
+	        }
+
+	        return this;
+	    }
 	}
 }

@@ -38,7 +38,7 @@ namespace FuelSDK
         /// </summary>
 		public ETCampaign()
 		{
-			Endpoint = "https://www.exacttargetapis.com/hub/v1/campaigns/{ID}";
+            Endpoint = ConfigUtil.GetFuelSDKConfigSection().RestEndPoint + "/hub/v1/campaigns/{ID}";
 			URLProperties = new[] { "ID" };
 			RequiredURLProperties = new string[0];
 		}

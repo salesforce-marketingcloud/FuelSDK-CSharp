@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using Newtonsoft.Json.Linq;
 
 namespace FuelSDK
@@ -23,7 +24,7 @@ namespace FuelSDK
         /// </summary>
 		public ETEndpoint()
 		{
-			Endpoint = "https://www.exacttargetapis.com/platform/v1/endpoints/{Type}";
+            Endpoint = ConfigUtil.GetFuelSDKConfigSection().RestEndPoint + "/platform/v1/endpoints/{Type}";
 			URLProperties = new[] { "Type" };
 			RequiredURLProperties = new string[0];
 		}

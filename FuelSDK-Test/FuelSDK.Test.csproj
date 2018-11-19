@@ -32,10 +32,19 @@
       <HintPath>..\packages\NUnit.3.7.1\lib\net40\nunit.framework.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="NUnit3.TestAdapter">
+      <HintPath>..\packages\NUnit3TestAdapter.3.7.0\tools\NUnit3.TestAdapter.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AuthEndpointUriBuilderTest.cs" />
+    <Compile Include="CustomConfigSectionBasedTest.cs" />
+    <Compile Include="ETCampaignAssetTest.cs" />
     <Compile Include="ETCampaignTest.cs" />
+    <Compile Include="ETClientTest.cs" />
     <Compile Include="ETContentAreaTest.cs" />
     <Compile Include="ETDataExtensionColumnTest.cs" />
     <Compile Include="ETDataExtensionRowTest.cs" />
@@ -51,10 +60,49 @@
     <Compile Include="ETSubscriberTest.cs" />
     <Compile Include="ETTriggeredSendDefinitionTest.cs" />
     <Compile Include="ETUnsubEventTest.cs" />
+    <Compile Include="FuelSDKConfigurationSectionTest.cs" />
+    <Compile Include="StackKeyTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="ConfigFiles\allPropertiesSetButRestEndpointIsEmpty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\allPropertiesSetButAuthEndpointIsEmpty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\authEndpointWithMultipleQueryParamsIncludingLegacyParam.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\authEndpointWithMultipleQueryParamsButMissingLegacyParam.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\authEndpointWithLegacyQueryParam.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\authEndpointMissingLegacyQueryParam.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\allPropertiesSet.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\empty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredAppSignatureProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredClientIdProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\missingRequiredClientSecretProperty.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="ConfigFiles\requiredPropertiesOnly.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
     <None Include="App.config.transform">

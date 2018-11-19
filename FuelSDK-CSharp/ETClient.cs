@@ -5,12 +5,9 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
 using System.Xml.Linq;
-using System.Xml.Serialization;
-using System.Xml.XPath;
 using JWT;
 using JWT.Serializers;
 using Newtonsoft.Json.Linq;
@@ -23,7 +20,8 @@ namespace FuelSDK
     /// </summary>
     public class ETClient
     {
-        public const string SDKVersion = "FuelSDX-C#-v1.0.0";
+        public const string SDKVersion = "FuelSDK-C#-v1.1.0";
+
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
         public SoapClient SoapClient { get; private set; }
@@ -34,7 +32,12 @@ namespace FuelSDK
         public string EnterpriseId { get; private set; }
         public string OrganizationId { get; private set; }
         public string Stack { get; private set; }
-        private string authEndPoint { get; set; }
+
+        private static DateTime soapEndPointExpiration;
+        private static DateTime stackKeyExpiration;
+        private static string fetchedSoapEndpoint;
+        private const long cacheDurationInMinutes = 10;
+
         public class RefreshState
         {
             public string RefreshKey { get; set; }
@@ -50,6 +53,9 @@ namespace FuelSDK
             // Get configuration file and set variables
             configSection = (FuelSDKConfigurationSection)ConfigurationManager.GetSection("fuelSDK");
             configSection = (configSection != null ? (FuelSDKConfigurationSection)configSection.Clone() : new FuelSDKConfigurationSection());
+            configSection = configSection
+                .WithDefaultAuthEndpoint(DefaultEndpoints.Auth)
+                .WithDefaultRestEndpoint(DefaultEndpoints.Rest);
             if (parameters != null)
             {
                 if (parameters.AllKeys.Contains("appSignature"))
@@ -63,6 +69,10 @@ namespace FuelSDK
                 if (parameters.AllKeys.Contains("authEndPoint"))
                 {
                     configSection.AuthenticationEndPoint = parameters["authEndPoint"];
+                }
+                if (parameters.AllKeys.Contains("restEndPoint"))
+                {
+                    configSection.RestEndPoint = parameters["restEndPoint"];
                 }
             }
 
@@ -105,15 +115,9 @@ namespace FuelSDK
                 organizationFind = true;
             }
 
-            // Find the appropriate endpoint for the acccount
-            var grSingleEndpoint = new ETEndpoint { AuthStub = this, Type = "soap" }.Get();
-            if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
-                configSection.SoapEndPoint = ((ETEndpoint)grSingleEndpoint.Results[0]).URL;
-            else
-                throw new Exception("Unable to determine stack using /platform/v1/endpoints: " + grSingleEndpoint.Message);
+            FetchSoapEndpoint();
 
             // Create the SOAP binding for call with Oauth.
-
             SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
             SoapClient.ClientCredentials.UserName.UserName = "*";
             SoapClient.ClientCredentials.UserName.Password = "*";
@@ -139,9 +143,42 @@ namespace FuelSDK
                     {
                         EnterpriseId = results[0].Client.EnterpriseID.ToString();
                         OrganizationId = results[0].ID.ToString();
-                        Stack = GetStackFromSoapEndPoint(new Uri(configSection.SoapEndPoint));
+                        Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
                     }
                 }
+        }
+
+        internal string FetchRestAuth()
+        {
+            var returnedRestAuthEndpoint = new ETEndpoint { AuthStub = this, Type = "restAuth" }.Get();
+            if (returnedRestAuthEndpoint.Status && returnedRestAuthEndpoint.Results.Length == 1)
+                return ((ETEndpoint)returnedRestAuthEndpoint.Results[0]).URL;
+            else
+                throw new Exception("REST auth endpoint could not be determined");
+        }
+
+        private void FetchSoapEndpoint()
+        {
+            if (string.IsNullOrEmpty(configSection.SoapEndPoint) || (DateTime.Now > soapEndPointExpiration && fetchedSoapEndpoint != null))
+            {
+                try
+                {
+                    var grSingleEndpoint = new ETEndpoint { AuthStub = this, Type = "soap" }.Get();
+                    if (grSingleEndpoint.Status && grSingleEndpoint.Results.Length == 1)
+                    {
+                        // Find the appropriate endpoint for the account
+                        configSection.SoapEndPoint = ((ETEndpoint)grSingleEndpoint.Results[0]).URL;
+                        fetchedSoapEndpoint = configSection.SoapEndPoint;
+                        soapEndPointExpiration = DateTime.Now.AddMinutes(cacheDurationInMinutes);
+                    }
+                    else
+                        configSection.SoapEndPoint = DefaultEndpoints.Soap;
+                }
+                catch
+                {
+                    configSection.SoapEndPoint = DefaultEndpoints.Soap;
+                }
+            }
         }
 
         private string DecodeJWT(string jwt, string key)
@@ -154,14 +191,6 @@ namespace FuelSDK
 
             var json = decoder.Decode(jwt, key, true);
             return json;
-        }
-
-        private string GetStackFromSoapEndPoint(Uri uri)
-        {
-            var parts = uri.Host.Split('.');
-            if (parts.Length < 2 || !parts[0].Equals("webservice", StringComparison.OrdinalIgnoreCase))
-                throw new Exception("not exacttarget.com");
-            return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
         }
 
         private static Binding GetSoapBinding()
@@ -200,15 +229,17 @@ namespace FuelSDK
 
         public void RefreshToken(bool force = false)
         {
+            // workaround to support TLS 1.2 in .NET 4.0 (source: https://blogs.perficient.com/2016/04/28/tsl-1-2-and-net-support/)
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
             if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
                 return;
 
             // Get an internalAuthToken using clientId and clientSecret
-            var strURL = configSection.AuthenticationEndPoint;
+            var authEndpoint = new AuthEndpointUriBuilder(configSection).Build();
 
             // Build the request
-            var request = (HttpWebRequest)WebRequest.Create(strURL.Trim());
+            var request = (HttpWebRequest)WebRequest.Create(authEndpoint.Trim());
             request.Method = "POST";
             request.ContentType = "application/json";
             request.UserAgent = SDKVersion;
