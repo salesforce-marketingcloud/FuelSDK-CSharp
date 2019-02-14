@@ -78,7 +78,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AuthEndpointUriBuilder.cs" />
     <Compile Include="ConfigUtil.cs" />
     <Compile Include="DefaultEndpoints.cs" />
     <Compile Include="ETClient.cs" />

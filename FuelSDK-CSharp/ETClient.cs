@@ -25,7 +25,6 @@ namespace FuelSDK
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
         public SoapClient SoapClient { get; private set; }
-        public string InternalAuthToken { get; private set; }
         public string RefreshKey { get; private set; }
         public DateTime AuthTokenExpiration { get; private set; }
         public JObject Jwt { get; private set; }
@@ -98,7 +97,6 @@ namespace FuelSDK
                 var parsedJWT = JObject.Parse(decodedJWT);
                 AuthToken = parsedJWT["request"]["user"]["oauthToken"].Value<string>().Trim();
                 AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedJWT["request"]["user"]["expiresIn"].Value<string>().Trim()));
-                InternalAuthToken = parsedJWT["request"]["user"]["internalOauthToken"].Value<string>().Trim();
                 RefreshKey = parsedJWT["request"]["user"]["refreshToken"].Value<string>().Trim();
                 Jwt = parsedJWT;
                 var orgPart = parsedJWT["request"]["organization"];
@@ -117,19 +115,15 @@ namespace FuelSDK
 
             FetchSoapEndpoint();
 
-            // Create the SOAP binding for call with Oauth.
+            // Create the SOAP binding for call with fueloauth.
             SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
-            SoapClient.ClientCredentials.UserName.UserName = "*";
-            SoapClient.ClientCredentials.UserName.Password = "*";
 
             // Find Organization Information
             if (organizationFind)
                 using (var scope = new OperationContextScope(SoapClient.InnerChannel))
                 {
-                    // Add oAuth token to SOAP header.
-                    XNamespace ns = "http://exacttarget.com";
-                    var oauthElement = new XElement(ns + "oAuthToken", InternalAuthToken);
-                    var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                    // Add access token to SOAP header.
+                    var xmlHeader = MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", AuthToken);
                     OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
                     var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
@@ -143,7 +137,7 @@ namespace FuelSDK
                     {
                         EnterpriseId = results[0].Client.EnterpriseID.ToString();
                         OrganizationId = results[0].ID.ToString();
-                        Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
+                        //Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
                     }
                 }
         }
@@ -197,7 +191,6 @@ namespace FuelSDK
         {
             return new CustomBinding(new BindingElementCollection
             {
-                SecurityBindingElement.CreateUserNameOverTransportBindingElement(),
                 new TextMessageEncodingBindingElement
                 {
                     MessageVersion = MessageVersion.Soap12WSAddressingAugust2004,
@@ -236,7 +229,7 @@ namespace FuelSDK
                 return;
 
             // Get an internalAuthToken using clientId and clientSecret
-            var authEndpoint = new AuthEndpointUriBuilder(configSection).Build();
+            var authEndpoint = configSection.AuthenticationEndPoint;
 
             // Build the request
             var request = (HttpWebRequest)WebRequest.Create(authEndpoint.Trim());
@@ -248,7 +241,7 @@ namespace FuelSDK
             {
                 string json;
                 if (!string.IsNullOrEmpty(RefreshKey))
-                    json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"refreshToken\": \"{2}\", \"scope\": \"cas:{3}\" , \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret, RefreshKey, InternalAuthToken);
+                    json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"refreshToken\": \"{2}\", \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret, RefreshKey);
                 else
                     json = string.Format("{{\"clientId\": \"{0}\", \"clientSecret\": \"{1}\", \"accessType\": \"offline\"}}", configSection.ClientId, configSection.ClientSecret);
                 streamWriter.Write(json);
@@ -263,7 +256,6 @@ namespace FuelSDK
 
             // Parse the response
             var parsedResponse = JObject.Parse(responseFromServer);
-            InternalAuthToken = parsedResponse["legacyToken"].Value<string>().Trim();
             AuthToken = parsedResponse["accessToken"].Value<string>().Trim();
             AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
             RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();

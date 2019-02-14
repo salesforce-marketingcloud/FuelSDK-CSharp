@@ -40,7 +40,6 @@
     <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AuthEndpointUriBuilderTest.cs" />
     <Compile Include="CustomConfigSectionBasedTest.cs" />
     <Compile Include="ETCampaignAssetTest.cs" />
     <Compile Include="ETCampaignTest.cs" />
