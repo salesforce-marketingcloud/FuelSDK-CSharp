@@ -122,7 +122,7 @@ namespace FuelSDK
             if (organizationFind)
                 using (var scope = new OperationContextScope(SoapClient.InnerChannel))
                 {
-                    // Add access token to SOAP header.
+                    // Add the fueloauth token to SOAP header.
                     var xmlHeader = MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", AuthToken);
                     OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
@@ -137,7 +137,7 @@ namespace FuelSDK
                     {
                         EnterpriseId = results[0].Client.EnterpriseID.ToString();
                         OrganizationId = results[0].ID.ToString();
-                        //Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
+                        Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
                     }
                 }
         }
