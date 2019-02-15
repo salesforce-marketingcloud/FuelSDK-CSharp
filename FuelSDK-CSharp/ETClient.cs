@@ -117,8 +117,8 @@ namespace FuelSDK
 
             // Create the SOAP binding for call with fueloauth.
             SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
-            SoapClient.ClientCredentials.UserName.UserName = "*";
-            SoapClient.ClientCredentials.UserName.Password = "*";
+            //SoapClient.ClientCredentials.UserName.UserName = "*";
+            //SoapClient.ClientCredentials.UserName.Password = "*";
 
             // Find Organization Information
             if (organizationFind)
@@ -193,7 +193,7 @@ namespace FuelSDK
         {
             return new CustomBinding(new BindingElementCollection
             {
-                SecurityBindingElement.CreateUserNameOverTransportBindingElement(),
+                //SecurityBindingElement.CreateUserNameOverTransportBindingElement(),     not needed as we are using fuleoauth authentication
                 new TextMessageEncodingBindingElement
                 {
                     MessageVersion = MessageVersion.Soap12WSAddressingAugust2004,
