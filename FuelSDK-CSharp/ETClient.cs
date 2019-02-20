@@ -31,12 +31,29 @@ namespace FuelSDK
         public JObject Jwt { get; private set; }
         public string EnterpriseId { get; private set; }
         public string OrganizationId { get; private set; }
-        public string Stack { get; private set; }
+        private string stackKey;
+        [Obsolete(StackKeyErrorMessage)]
+        public string Stack
+        {
+            get {
+                if (stackKey != null)
+                    return stackKey;
+
+                stackKey = GetStackFromSoapEndPoint(new Uri(configSection.SoapEndPoint));
+                return stackKey;
+            }
+            private set
+            {
+                stackKey = value;
+            }
+        }
 
         private static DateTime soapEndPointExpiration;
         private static DateTime stackKeyExpiration;
         private static string fetchedSoapEndpoint;
         private const long cacheDurationInMinutes = 10;
+
+        private const string StackKeyErrorMessage = "Tenant specific endpoints doesn't support Stack Key property and this will property will be deprecated in next major release";
 
         public class RefreshState
         {
@@ -143,7 +160,6 @@ namespace FuelSDK
                     {
                         EnterpriseId = results[0].Client.EnterpriseID.ToString();
                         OrganizationId = results[0].ID.ToString();
-                        Stack = StackKey.Instance.Get(long.Parse(EnterpriseId), this);
                     }
                 }
         }
@@ -191,6 +207,14 @@ namespace FuelSDK
 
             var json = decoder.Decode(jwt, key, true);
             return json;
+        }
+
+        private string GetStackFromSoapEndPoint(Uri uri)
+        {
+            var parts = uri.Host.Split('.');
+            if (parts.Length < 2 || !parts[0].Equals("webservice", StringComparison.OrdinalIgnoreCase))
+                throw new Exception(StackKeyErrorMessage);
+            return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
         }
 
         private static Binding GetSoapBinding()
