@@ -410,10 +410,8 @@ namespace FuelSDK
 			client.RefreshToken();
 			using (var scope = new OperationContextScope(client.SoapClient.InnerChannel))
 			{
-                // Add oAuth token to SOAP header.
-                XNamespace ns = "http://exacttarget.com";
-                var oauthElement = new XElement(ns + "oAuthToken", client.InternalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                // Add the fueloauth token to SOAP header.
+                var xmlHeader = MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", client.AuthToken);
                 OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
 				var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
