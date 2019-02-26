@@ -1,19 +1,35 @@
 ﻿using NUnit.Framework;
+using System;
+using System.Linq;
 
 namespace FuelSDK.Test
 {
     [TestFixture]
     public class StackKeyTest
     {
-        [Test]
-        public void MultipleETClientInstancesForTheSameClientIdAndSecretWillHaveTheSameStackKey()
-        {
-            ETClient client1 = new ETClient();
-            ETClient client2 = new ETClient();
+        private const string StackKeyErrorMessage = "Tenant specific endpoints doesn't support Stack Key property and this will property will be deprecated in next major release";
 
-            Assert.IsNotNull(client1.Stack);
-            Assert.IsNotNull(client2.Stack);
-            Assert.AreEqual(client1.Stack, client2.Stack);
+        [Test]
+        public void ExceptionOccursIfTSEFormatIsUsedForSoapEndpoint()
+        {
+            var client = new ETClient();
+
+            var exception = Assert.Throws<Exception>(
+                () => { var stack = client.Stack; }
+            );
+
+            Assert.That(exception.Message, Is.EqualTo(StackKeyErrorMessage));
+        }
+
+        [Test]
+        public void StackPropertyIsMarkedAsObsolete()
+        {
+            var type = typeof(ETClient);
+            var obsoleteAttributes = (ObsoleteAttribute[])type.GetProperty("Stack").GetCustomAttributes(typeof(ObsoleteAttribute), false);
+
+            Assert.AreEqual(1, obsoleteAttributes.Length);
+            Assert.AreEqual(StackKeyErrorMessage, obsoleteAttributes[0].Message);
+            Assert.AreEqual(false, obsoleteAttributes[0].IsError);
         }
     }
 }
