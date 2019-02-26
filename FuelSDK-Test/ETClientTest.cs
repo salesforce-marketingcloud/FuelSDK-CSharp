@@ -1,6 +1,5 @@
 ﻿using NUnit.Framework;
 using System;
-using System.Collections.Specialized;
 using System.Reflection;
 
 namespace FuelSDK.Test
