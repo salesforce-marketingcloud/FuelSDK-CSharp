@@ -18,14 +18,6 @@ namespace FuelSDK.Test
         }
 
         [Test()]
-        public void GetClientStack()
-        {
-            Assert.IsNotNull(client1.Stack);
-            Assert.IsNotNull(client2.Stack);
-            Assert.AreEqual(client1.Stack, client2.Stack);
-        }
-
-        [Test()]
         public void TestSoapEndpointCaching()
         {
             var client1SoapEndpointExpirationField = client1.GetType().GetField("soapEndPointExpiration", BindingFlags.NonPublic | BindingFlags.Static);
