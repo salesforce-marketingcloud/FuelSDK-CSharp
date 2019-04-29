@@ -99,7 +99,7 @@ namespace FuelSDK
                     configSection.RestEndPoint = parameters["oAuth2AuthenticationMode"];
                 }
             }
-            UseOAuth2Authentication = String.IsNullOrEmpty(configSection.OAuth2AuthenticationMode)? false : Boolean.Parse(configSection.OAuth2AuthenticationMode);
+            UseOAuth2Authentication = String.IsNullOrEmpty(configSection.OAuth2AuthenticationMode) ? false : Boolean.Parse(configSection.OAuth2AuthenticationMode);
             if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
 
@@ -149,39 +149,33 @@ namespace FuelSDK
             // Find Organization Information
             if (organizationFind)
             {
-                if (!UseOAuth2Authentication)
+                using (var scope = new OperationContextScope(SoapClient.InnerChannel))
                 {
-                    using (var scope = new OperationContextScope(SoapClient.InnerChannel))
-                    {
-                        // Add oAuth token to SOAP header.
-                        XNamespace ns = "http://exacttarget.com";
-                        var oauthElement = new XElement(ns + "oAuthToken", InternalAuthToken);
-                        var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
-                        OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
+                    // Add oAuth token to SOAP header.
+                    XNamespace ns = "http://exacttarget.com";
+                    var oauthElement = new XElement(ns + "oAuthToken", InternalAuthToken);
+                    var xmlHeader = UseOAuth2Authentication ? MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", AuthToken)
+                        : MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                    OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
-                        var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                        OperationContext.Current.OutgoingMessageProperties.Add(
-                            System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
-                        httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ETClient.SDKVersion);
+                    var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
+                    OperationContext.Current.OutgoingMessageProperties.Add(
+                        System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
+                    httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ETClient.SDKVersion);
 
-                        string requestID;
-                        APIObject[] results;
-                        var r = SoapClient.Retrieve(
-                            new RetrieveRequest
-                            {
-                                ObjectType = "BusinessUnit",
-                                Properties = new[] { "ID", "Client.EnterpriseID" }
-                            }, out requestID, out results);
-                        if (r == "OK" && results.Length > 0)
+                    string requestID;
+                    APIObject[] results;
+                    var r = SoapClient.Retrieve(
+                        new RetrieveRequest
                         {
-                            EnterpriseId = results[0].Client.EnterpriseID.ToString();
-                            OrganizationId = results[0].ID.ToString();
-                        }
+                            ObjectType = "BusinessUnit",
+                            Properties = new[] { "ID", "Client.EnterpriseID" }
+                        }, out requestID, out results);
+                    if (r == "OK" && results.Length > 0)
+                    {
+                        EnterpriseId = results[0].Client.EnterpriseID.ToString();
+                        OrganizationId = results[0].ID.ToString();
                     }
-                }
-                else
-                {
-
                 }
             }
         }
@@ -265,7 +259,7 @@ namespace FuelSDK
                     MaxBufferSize = 655360000,
                     KeepAliveEnabled = true
                 });
-           
+
             return new CustomBinding(bindingCollection)
             {
                 Name = "UserNameSoapBinding",
