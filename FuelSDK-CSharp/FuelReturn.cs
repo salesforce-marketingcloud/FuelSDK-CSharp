@@ -413,7 +413,9 @@ namespace FuelSDK
                 // Add oAuth token to SOAP header.
                 XNamespace ns = "http://exacttarget.com";
                 var oauthElement = new XElement(ns + "oAuthToken", client.InternalAuthToken);
-                var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+			    var xmlHeader = client.UseOAuth2Authentication ? MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", client.AuthToken)
+			         :  MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+               
                 OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
 				var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();

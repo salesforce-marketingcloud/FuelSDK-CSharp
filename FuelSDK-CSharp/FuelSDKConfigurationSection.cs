@@ -68,6 +68,16 @@ namespace FuelSDK
             get { return (string)this["restEndPoint"]; }
             set { this["restEndPoint"] = value; }
         }
+	    /// <summary>
+	    /// Gets or sets the Authenticaton Mode.
+	    /// </summary>
+	    /// <value>Authenticaton Mode</value>
+        [ConfigurationProperty("oAuth2AuthenticationMode")]
+	    public string OAuth2AuthenticationMode
+	    {
+            get { return (string)this["oAuth2AuthenticationMode"]; }
+            set { this["oAuth2AuthenticationMode"] = value; }
+	    }
         /// <summary>
         /// Clone this instance.
         /// </summary>
