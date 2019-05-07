@@ -319,7 +319,7 @@ namespace FuelSDK
             RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
         }
 
-        public void RefreshTokenWithOauth2(bool force = false)
+        private void RefreshTokenWithOauth2(bool force = false)
         {
             // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
