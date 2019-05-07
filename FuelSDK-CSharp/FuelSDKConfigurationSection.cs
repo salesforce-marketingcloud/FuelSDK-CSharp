@@ -72,11 +72,11 @@ namespace FuelSDK
 	    /// Gets or sets the Authenticaton Mode.
 	    /// </summary>
 	    /// <value>Authenticaton Mode</value>
-        [ConfigurationProperty("oAuth2AuthenticationMode")]
-	    public string OAuth2AuthenticationMode
+        [ConfigurationProperty("useOAuth2Authentication", DefaultValue = "false")]
+	    public string UseOAuth2Authentication
 	    {
-            get { return (string)this["oAuth2AuthenticationMode"]; }
-            set { this["oAuth2AuthenticationMode"] = value; }
+            get { return (string)this["useOAuth2Authentication"]; }
+            set { this["useOAuth2Authentication"] = value; }
 	    }
         /// <summary>
         /// Clone this instance.

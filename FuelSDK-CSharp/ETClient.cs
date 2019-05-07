@@ -32,7 +32,12 @@ namespace FuelSDK
         public string EnterpriseId { get; private set; }
         public string OrganizationId { get; private set; }
         private string stackKey;
-        public bool UseOAuth2Authentication { get; private set; }
+        private bool oauth2Flag;
+
+        public bool UseOAuth2Authentication
+        {
+            get { return !String.IsNullOrEmpty(configSection.UseOAuth2Authentication) && Convert.ToBoolean(configSection.UseOAuth2Authentication); }
+        }
 
         [Obsolete(StackKeyErrorMessage)]
         public string Stack
@@ -94,12 +99,11 @@ namespace FuelSDK
                 {
                     configSection.RestEndPoint = parameters["restEndPoint"];
                 }
-                if (parameters.AllKeys.Contains("oAuth2AuthenticationMode"))
+                if (parameters.AllKeys.Contains("useOAuth2Authentication"))
                 {
-                    configSection.RestEndPoint = parameters["oAuth2AuthenticationMode"];
+                    configSection.UseOAuth2Authentication = parameters["useOAuth2Authentication"];
                 }
             }
-            UseOAuth2Authentication = String.IsNullOrEmpty(configSection.OAuth2AuthenticationMode) ? false : Boolean.Parse(configSection.OAuth2AuthenticationMode);
             if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
 
@@ -142,7 +146,7 @@ namespace FuelSDK
             FetchSoapEndpoint();
 
             // Create the SOAP binding for call with Oauth.
-            SoapClient = new SoapClient(GetSoapBinding(UseOAuth2Authentication), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
+            SoapClient = new SoapClient(GetSoapBinding(), new EndpointAddress(new Uri(configSection.SoapEndPoint)));
             SoapClient.ClientCredentials.UserName.UserName = "*";
             SoapClient.ClientCredentials.UserName.Password = "*";
 
@@ -233,10 +237,10 @@ namespace FuelSDK
             return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
         }
 
-        private static Binding GetSoapBinding(bool useOauth2 = false)
+        private Binding GetSoapBinding()
         {
             BindingElementCollection bindingCollection = new BindingElementCollection();
-            if (!useOauth2)
+            if (!UseOAuth2Authentication)
             {
                 bindingCollection.Add(SecurityBindingElement.CreateUserNameOverTransportBindingElement());
             }
@@ -275,7 +279,7 @@ namespace FuelSDK
         {
             if (UseOAuth2Authentication)
                 RefreshTokenWithOauth2(force);
-            // workaround to support TLS 1.2 in .NET 4.0 (source: https://blogs.perficient.com/2016/04/28/tsl-1-2-and-net-support/)
+            // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
             if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
@@ -317,7 +321,7 @@ namespace FuelSDK
 
         public void RefreshTokenWithOauth2(bool force = false)
         {
-            // workaround to support TLS 1.2 in .NET 4.0 (source: https://blogs.perficient.com/2016/04/28/tsl-1-2-and-net-support/)
+            // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
             if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
