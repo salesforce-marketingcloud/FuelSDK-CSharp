@@ -32,7 +32,6 @@ namespace FuelSDK
         public string EnterpriseId { get; private set; }
         public string OrganizationId { get; private set; }
         private string stackKey;
-        private bool oauth2Flag;
 
         public bool UseOAuth2Authentication
         {
@@ -278,7 +277,11 @@ namespace FuelSDK
         public void RefreshToken(bool force = false)
         {
             if (UseOAuth2Authentication)
+            {
                 RefreshTokenWithOauth2(force);
+                return;
+            }
+
             // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
