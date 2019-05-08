@@ -20,7 +20,7 @@ namespace FuelSDK
     /// </summary>
     public class ETClient
     {
-        public const string SDKVersion = "FuelSDK-C#-v1.1.1";
+        public const string SDKVersion = "FuelSDK-C#-v1.2.0";
 
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
@@ -32,10 +32,17 @@ namespace FuelSDK
         public string EnterpriseId { get; private set; }
         public string OrganizationId { get; private set; }
         private string stackKey;
+
+        public bool UseOAuth2Authentication
+        {
+            get { return !String.IsNullOrEmpty(configSection.UseOAuth2Authentication) && Convert.ToBoolean(configSection.UseOAuth2Authentication); }
+        }
+
         [Obsolete(StackKeyErrorMessage)]
         public string Stack
         {
-            get {
+            get
+            {
                 if (stackKey != null)
                     return stackKey;
 
@@ -91,8 +98,11 @@ namespace FuelSDK
                 {
                     configSection.RestEndPoint = parameters["restEndPoint"];
                 }
+                if (parameters.AllKeys.Contains("useOAuth2Authentication"))
+                {
+                    configSection.UseOAuth2Authentication = parameters["useOAuth2Authentication"];
+                }
             }
-
             if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
 
@@ -141,27 +151,36 @@ namespace FuelSDK
 
             // Find Organization Information
             if (organizationFind)
+            {
                 using (var scope = new OperationContextScope(SoapClient.InnerChannel))
                 {
                     // Add oAuth token to SOAP header.
                     XNamespace ns = "http://exacttarget.com";
                     var oauthElement = new XElement(ns + "oAuthToken", InternalAuthToken);
-                    var xmlHeader = MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
+                    var xmlHeader = UseOAuth2Authentication ? MessageHeader.CreateHeader("fueloauth", "http://exacttarget.com", AuthToken)
+                        : MessageHeader.CreateHeader("oAuth", "http://exacttarget.com", oauthElement);
                     OperationContext.Current.OutgoingMessageHeaders.Add(xmlHeader);
 
                     var httpRequest = new System.ServiceModel.Channels.HttpRequestMessageProperty();
-                    OperationContext.Current.OutgoingMessageProperties.Add(System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
+                    OperationContext.Current.OutgoingMessageProperties.Add(
+                        System.ServiceModel.Channels.HttpRequestMessageProperty.Name, httpRequest);
                     httpRequest.Headers.Add(HttpRequestHeader.UserAgent, ETClient.SDKVersion);
 
                     string requestID;
                     APIObject[] results;
-                    var r = SoapClient.Retrieve(new RetrieveRequest { ObjectType = "BusinessUnit", Properties = new[] { "ID", "Client.EnterpriseID" } }, out requestID, out results);
+                    var r = SoapClient.Retrieve(
+                        new RetrieveRequest
+                        {
+                            ObjectType = "BusinessUnit",
+                            Properties = new[] { "ID", "Client.EnterpriseID" }
+                        }, out requestID, out results);
                     if (r == "OK" && results.Length > 0)
                     {
                         EnterpriseId = results[0].Client.EnterpriseID.ToString();
                         OrganizationId = results[0].ID.ToString();
                     }
                 }
+            }
         }
 
         internal string FetchRestAuth()
@@ -217,12 +236,14 @@ namespace FuelSDK
             return (parts[1] == "exacttarget" ? "s1" : parts[1].ToLower());
         }
 
-        private static Binding GetSoapBinding()
+        private Binding GetSoapBinding()
         {
-            return new CustomBinding(new BindingElementCollection
+            BindingElementCollection bindingCollection = new BindingElementCollection();
+            if (!UseOAuth2Authentication)
             {
-                SecurityBindingElement.CreateUserNameOverTransportBindingElement(),
-                new TextMessageEncodingBindingElement
+                bindingCollection.Add(SecurityBindingElement.CreateUserNameOverTransportBindingElement());
+            }
+            bindingCollection.AddRange(new TextMessageEncodingBindingElement
                 {
                     MessageVersion = MessageVersion.Soap12WSAddressingAugust2004,
                     ReaderQuotas =
@@ -240,7 +261,9 @@ namespace FuelSDK
                     MaxReceivedMessageSize = 655360000,
                     MaxBufferSize = 655360000,
                     KeepAliveEnabled = true
-                } })
+                });
+
+            return new CustomBinding(bindingCollection)
             {
                 Name = "UserNameSoapBinding",
                 Namespace = "Core.Soap",
@@ -253,7 +276,13 @@ namespace FuelSDK
 
         public void RefreshToken(bool force = false)
         {
-            // workaround to support TLS 1.2 in .NET 4.0 (source: https://blogs.perficient.com/2016/04/28/tsl-1-2-and-net-support/)
+            if (UseOAuth2Authentication)
+            {
+                RefreshTokenWithOauth2(force);
+                return;
+            }
+
+            // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
             // RefreshToken
             if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
@@ -291,6 +320,42 @@ namespace FuelSDK
             AuthToken = parsedResponse["accessToken"].Value<string>().Trim();
             AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expiresIn"].Value<string>().Trim()));
             RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
+        }
+
+        private void RefreshTokenWithOauth2(bool force = false)
+        {
+            // workaround to support TLS 1.2 in .NET 4.0
+            ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
+            // RefreshToken
+            if (!string.IsNullOrEmpty(AuthToken) && DateTime.Now.AddSeconds(300) <= AuthTokenExpiration && !force)
+                return;
+
+            var authEndpoint = configSection.AuthenticationEndPoint + "/v2/token";
+            var request = (HttpWebRequest)WebRequest.Create(authEndpoint.Trim());
+            request.Method = "POST";
+            request.ContentType = "application/json";
+            request.UserAgent = SDKVersion;
+
+            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            {
+                string json = string.Format("{{\"client_id\": \"{0}\", \"client_secret\": \"{1}\", \"grant_type\": \"client_credentials\"}}", configSection.ClientId, configSection.ClientSecret);
+                streamWriter.Write(json);
+            }
+
+            // Get the response
+            string responseFromServer = null;
+            using (var response = (HttpWebResponse)request.GetResponse())
+            using (var dataStream = response.GetResponseStream())
+            using (var reader = new StreamReader(dataStream))
+                responseFromServer = reader.ReadToEnd();
+
+            // Parse the response
+            var parsedResponse = JObject.Parse(responseFromServer);
+            AuthToken = parsedResponse["access_token"].Value<string>().Trim();
+            InternalAuthToken = parsedResponse["access_token"].Value<string>().Trim();
+            AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expires_in"].Value<string>().Trim()));
+            configSection.SoapEndPoint = parsedResponse["soap_instance_url"].Value<string>().Trim() + "service.asmx";
+            configSection.RestEndPoint = parsedResponse["rest_instance_url"].Value<string>().Trim();
         }
 
         public FuelReturn AddSubscribersToList(string emailAddress, string subscriberKey, IEnumerable<int> listIDs) { return ProcessAddSubscriberToList(emailAddress, subscriberKey, listIDs); }
