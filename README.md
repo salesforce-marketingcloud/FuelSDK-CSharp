@@ -1,187 +1,133 @@
-FuelSDK-CSharp
+Salesforce Marketing Cloud Fuel SDK for C# 
 ============
 
-Salesforce Marketing Cloud Fuel SDK for C# 
 
 ## Overview ##
-The Fuel SDK for C# provides easy access to Salesforce Marketing Cloud's Fuel API Family services, including a collection of REST APIs and a SOAP API. These APIs provide access to Salesforce Marketing Cloud functionality via common collection types. 
-
-## Latest Version 1.2.0 ##
-* Added Support for OAuth 2 Authentication  
-
-## New Features in Version 1.2.0 ##
-* **Added support for OAuth2 - [More Details](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/integration-considerations.htm) :** The user of the SDK can now configure the use of OAuth2 Authentication through a **App.config** file OR using the “**parameters**” **ETClient** constructor parameter as in the previous version of the SDK. The user of the SDK has to make a copy of the **App.config.transform** file which is found in the **FuelSDK-CSharp** folder, place it in the same folder and rename it to **App.config**. The structure of this file will be the following: 
-
-<pre> 
-&lt;configuration&gt;
-  &lt;configSections&gt;
-    &lt;section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" /&gt;
-  &lt;/configSections&gt;
-  &lt;fuelSDK 
-    appSignature="&lt;appSignature&gt;" 
-    clientId="&lt;clientId&gt;" 
-    clientSecret="&lt;clientSecret&gt;" 
-    authEndPoint="&lt;authenticationEndPoint&gt;" 
-    soapEndPoint="&lt;soapEndPoint&gt;" 
-    restEndPoint="&lt;restEndPoint&gt;"
-	useOAuth2Authentication="&lt;true>" /&gt;
-&lt;/configuration&gt;
-
-</pre>
-
-## New Features in Version 1.1.0 ##
-* **Added support for your tenant's endpoints - [More Details](https://developer.salesforce.com/docs/atlas.en-us.mc-apis.meta/mc-apis/your-subdomain-tenant-specific-endpoints.htm) :** The user of the SDK can now configure them through a **App.config** file OR using the “**parameters**” **ETClient** constructor parameter as in the previous version of the SDK. The user of the SDK has to make a copy of the **App.config.transform** file which is found in the **FuelSDK-CSharp** folder, place it in the same folder and rename it to **App.config**. The structure of this file will be the following: 
-
-<pre> 
-&lt;configuration&gt;
-  &lt;configSections&gt;
-    &lt;section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" /&gt;
-  &lt;/configSections&gt;
-  &lt;fuelSDK 
-    appSignature="&lt;appSignature&gt;" 
-    clientId="&lt;clientId&gt;" 
-    clientSecret="&lt;clientSecret&gt;" 
-    authEndPoint="&lt;authenticationEndPoint&gt;" 
-    soapEndPoint="&lt;soapEndPoint&gt;" 
-    restEndPoint="&lt;restEndPoint>" /&gt;
-&lt;/configuration&gt;
-
-</pre>
-
-
-## New Features in Version 1.0.0 ##
-* **code refactor :** code refactored to individual class files. Classes starting with “ET_” are deprecated now and all SDK API objects start with “ET”. 
-
-Project tree structure 
-- FuelSDK-CSharp : SDK Project 
-- FuelSDK.Test   : NUnit test project
-- objsamples     : Sample/Example project
-- docs           : SDK API HTML documentation 
-
-* **NUnit test case :** Nunit test case project added. This covers basic happy path testing. All the test cases use “ET” classes. For samples that uses “ET_” classes, please see “objsamples” project. Advanced and more comprehensive test cases will be added in future releases.
-
-* **API docs :** added API documentation using doxygen documentation framework. (under docs/ directory)
-
-* **JWT :** JWT.cs is removed from the project and added as dependency.
-
-Not specifying the **appSignature** field in the **App.config** file will throw an error if you try to instantiate the **ETClient** class using a **jwt**.
-
-Not specifying the **authEndPoint**, **soapEndPoint** and the **restEndPoint** in the **App.config** file will make the SDK use the default values of these fields that are provided in the **FuelSDKConfigurationSection** class.
-
-Not specifying the **clientId** and the **clientSecret** fields in the **App.config** file will throw an error if you try to instantiate the **ETClient** class.
+The Salesforce Marketing Cloud C# SDK enables developers to easily access the Salesforce Marketing Cloud (formerly ExactTarget) via the C# platform. Among other things, the SDK:
+* automatically acquires and refreshes Marketing Cloud access tokens
+* enables developers to access both Marketing Cloud SOAP and REST APIs in the same session
+* exposes simplified versions of the most commonly used Marketing Cloud objects and methods as C# native objects
 
 ## Requirements ##
-- .NET Studio 2013 or higher (WCF)
-- .NET Framework 4 
+* .NET Studio 2013 or higher (WCF)
+* .NET Framework 4
+## Download ##
+To use the C# Fuel SDK add the [Salesforce Marketing Cloud Fuel SDK nuget package](https://www.nuget.org/packages/SFMC.FuelSDK/) using the following command:
+`Install-Package SFMC.FuelSDK `
 
-Dependencies:
-JWT v3.0.0
-Newtonsoft.Json v10.0.3
+## Versions ##
+To see the latest feature added to the C# Fuel SDK go to [Releases](https://github.com/salesforce-marketingcloud/FuelSDK-CSharp/releases).
 
-## Installation ##
+## Getting started ##
+The MC SDK has now implemented two authentication possibilities: 
+* Legacy authentication
+* OAuth 2.0 authentication 
 
-Add Salesforce Marketing Cloud Fuel SDK nuget package using the following command in the package manager console:
+Until August 1st, 2019 both authentication options will be supported.
+Starting with August 1st, 2019 only OAuth 2.0 will be supported.
 
-<pre> Install-Package SFMC.FuelSDK </pre>
-All necessary settings are in App.config.transform file.
+**Configure**  
 
-## Getting Started ##
-The FuelSDK-CSharp solution file includes two projects. One for the actual SDK and one for a web based testing app as an example of how to use the SDK dll and other dependent files.
+Rename the `App.config.transform` file in the FuelSDK-CSharp project to `App.config`.
 
-Rename the **App.config.transform** file in the objsamples project to **App.config**, then edit so you can input the ClientID and Client Secret values provided when you registered your application. If you are building a HubExchange application for the Interactive Marketing Hub then, you must also provide the Application Signature (appsignature). Only change the value for the defaultwsdl configuration item if instructed by Salesforce Marketing Cloud.
+For Legacy authentication, use the below example for `App.config`
 
-If you have not registered your application or you need to lookup your Application Key or Application Signature values, please go to App Center at [Code@: Salesforce Marketing Cloud's Developer Community]( https://appcenter-auth.s1.marketingcloudapps.com	 "CODE@").
+```
+<?xml version="1.0"?>
+<configuration>
+  <configSections>
+    <section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" />
+  </configSections>
+  <fuelSDK
+    appSignature="none"
+    clientId="YOUR_CLIENT_ID"
+    clientSecret="YOUR_CLIENT_SECRET"
+    authEndPoint="YOUR_AUTH_TSE/v1/requestToken"
+    restEndPoint="YOUR_REST_TSE" />
+</configuration>
+```
 
-## Example Request ##
-All Salesforce Marketing Cloud services exposed through the Fuel SDK begin with be prefixed with "ET". Start by working with the ETList object:
+For OAuth2 authentication, use the below example for `App.config`
+```
+<?xml version="1.0"?>
+<configuration>
+  <configSections>
+    <section name="fuelSDK" type="FuelSDK.FuelSDKConfigurationSection, FuelSDK" />
+  </configSections>
+  <fuelSDK
+    appSignature="none"
+    clientId="YOUR_CLIENT_ID"
+    clientSecret="YOUR_CLIENT_SECRET"
+    authEndPoint="YOUR_AUTH_TSE"
+    restEndPoint="YOUR_REST_TSE"
+    useOAuth2Authentication="true" />
+</configuration>
+```
+
+More details and a comparison between legacy and enhanced packages can be found [here](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/installed-package-types.htm#).
+
+## Example Request ## 
+All Salesforce Marketing Cloud services exposed through the Fuel SDK begin with the "ET" prefix. 
+
+**ETClient Class**
+
+The ETClient class takes care of many of the required steps when accessing Salesforce Marketing Cloud's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ETClient object for each request made.
+
+**ETList object**
 
 Add a using statement to reference the FuelSDK's functionality:
-<pre>
 
->using FuelSDK;
+`using FuelSDK;`
 
 Next, create an instance of the ETClient class:
 
->ETClient myclient = new ETClient();            
+`ETClient myClient = new ETClient();`
 
 Create an instance of the Salesforce Marketing Cloud we want to work with:
 
->ETList list = new ETList();
+`ETList list = new ETList();`
 
 Associate the ETClient to the object using the client property:
 
->list.authStub = myclient;
+`list.AuthStub = myClient;`
 
 Utilize one of the ETList methods:
 
->GetReturn getFR = list.Get();
-
+`GetReturn allLists = list.Get();`
 
 Print out the results for viewing
 
+```
+Console.WriteLine("Get Status: " + allLists.Status.ToString());
+Console.WriteLine("Message: " + allLists.Message.ToString());
+Console.WriteLine("Code: " + allLists.Code.ToString());
+Console.WriteLine("Results Length: " + allLists.Results.Length);
+foreach (ETList ResultList in allLists.Results)
+{
+    Console.WriteLine("--ID: " + ResultList.ID + ", Name: " + ResultList.ListName + ", Description: " + ResultList.Description);
+}
+```
 
->Console.WriteLine("Get Status: " + getFR.Status.ToString());
->
->Console.WriteLine("Message: " + getFR.Message.ToString());
->
->Console.WriteLine("Code: " + getFR.Code.ToString());
->
->Console.WriteLine("Results Length: " + getFR.Results.Length);
+**Responses**
 
->foreach (ETList ResultList in getFR.Results) <br />
->{<br/>
->&nbsp;&nbsp;&nbsp;Console.WriteLine("--ID: " + ResultList.ID + ", Name: " + ResultList.ListName + ", Description: " + ResultList.Description);
-><br/>
->}
-</pre>
-
-
-
-## ETClient Class ##
-The ETClient class takes care of many of the required steps when accessing Salesforce Marketing Cloud's API, including retrieving appropriate access tokens, handling token state for managing refresh, and determining the appropriate endpoints for API requests. In order to leverage the advantages this class provides, use a single instance of this class for an entire session. Do not instantiate a new ETClient object for each request made.
-
-The ETClient class takes 1 parameter which is a NameValueCollection that can be used for passing authentication information for use with SSO with a JWT or for passing ClientID/ClientSecret if you would prefer to not use the config file option. 
-
-Example passing JWT: 
-> NameValueCollection parameters = new NameValueCollection();<br>
-parameters.Add("clientId", "<your client id>");<br>
-parameters.Add("clientSecret", "<your client secret>");<br>
-parameters.Add("jwt", "JWT Value Goes Here");<br>
-parameters.Add("appSignature", "j8hj87jhf54gfk54d2lijs");<br>
-ETClient myclient = new ETClient(parameters);<br>
-
-Example passing ClientID/ClientSecret only: 
-> NameValueCollection parameters = new NameValueCollection();<br>
-parameters.Add("clientId", "<your client id>");<br>
-parameters.Add("clientSecret", "<your client secret>");<br>
-ETClient myclient = new ETClient(parameters);<br>
-
-Example passing flag for sandbox environment with ClientID/ClientSecret: 
-> NameValueCollection parameters = new NameValueCollection();<br>
-parameters.Add("clientId", "<your client id>");<br>
-parameters.Add("clientSecret", "<your client secret>");<br>
-parameters.Add("sandbox", "true");<br>
-ETClient myclient = new ETClient(parameters);<br>
-
-## Responses ##
 All methods on Fuel SDK objects return an object that follows the same structure, regardless of the type of call. This object contains a common set of properties used to display details about the request.
+* Status: Boolean value that indicates if the call was successful.
+* Code: HTTP status code.
+* Message: Text values containing more details in the event of an error.
+* Results: Typed collection containing the results of the call.
+Get Methods also return an additional value to indicate if more information is available (that information can be retrieved using the GetMoreResults method):
+* MoreResults: Boolean value that indicates on Get requests if more data is available.
 
-- Status: Boolean value that indicates if the call was successful
-- Code: HTTP Error Code 
-- Message: Text values containing more details in the event of an error
-- Results: Typed collection containing the results of the call.
+**Sample calls**
 
-Get Methods also return an addition value to indicate if more information is available (that information can be retrieved using the GetMoreResults method):
-
-- MoreResults: Boolean value that indicates on Get requests if more data is available.
+The *objsamples* project (included in solution) contains sample calls for all the available functionality.
 
 
-## Samples ##
-The objsamples project (included in solution) contains sample calls for all the available functionality.
+## Contact us ##
+* Request a new feature, add a question or report a bug on [GitHub](https://github.com/salesforce-marketingcloud/FuelSDK-CSharp/issues).
+* Vote for [Popular Feature Requests](https://github.com/salesforce-marketingcloud/FuelSDK-CSharp/issues?q=is%3Aopen+sort%3Areactions-%2B1-desc+) by making relevant comments and add your [reaction](https://github.com/blog/2119-add-reactions-to-pull-requests-issues-and-comments). Use a reaction in place of a "+1" comment:
+    + 👍 - upvote
+    + 👎 - downvote
 
-## Copyright and license ##
-Copyright (c) 2018 Salesforce Marketing Cloud
-
-Licensed under the MIT License (the "License"); you may not use this work except in compliance with the License. You may obtain a copy of the License in the COPYING file.
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+## License ##
+By contributing your code, you agree to license your contribution under the terms of the [BSD 3-Clause License](https://github.com/salesforce-marketingcloud/FuelSDK-CSharp/blob/master/license.md).
