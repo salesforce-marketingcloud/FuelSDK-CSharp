@@ -78,6 +78,7 @@ namespace FuelSDK
             get { return (string)this["useOAuth2Authentication"]; }
             set { this["useOAuth2Authentication"] = value; }
 	    }
+
 	    /// <summary>
 	    /// Gets or sets the Account Id.
 	    /// </summary>
@@ -98,6 +99,7 @@ namespace FuelSDK
             get { return (string)this["scope"]; }
             set { this["scope"] = value; }
 	    }
+
         /// <summary>
         /// Clone this instance.
         /// </summary>
