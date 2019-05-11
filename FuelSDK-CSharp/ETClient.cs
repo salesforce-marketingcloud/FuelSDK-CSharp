@@ -103,6 +103,14 @@ namespace FuelSDK
                 {
                     configSection.UseOAuth2Authentication = parameters["useOAuth2Authentication"];
                 }
+                if (parameters.AllKeys.Contains("accountId"))
+                {
+                    configSection.AccountId = parameters["accountId"];
+                }
+                if (parameters.AllKeys.Contains("scope"))
+                {
+                    configSection.Scope = parameters["scope"];
+                }
             }
             if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
                 throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
@@ -335,7 +343,12 @@ namespace FuelSDK
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
-                string json = string.Format("{{\"client_id\": \"{0}\", \"client_secret\": \"{1}\", \"grant_type\": \"client_credentials\"}}", configSection.ClientId, configSection.ClientSecret);
+                string json = string.Format("{{\"client_id\": \"{0}\", \"client_secret\": \"{1}\", \"grant_type\": \"client_credentials\"", configSection.ClientId, configSection.ClientSecret);
+                string accountId = !string.IsNullOrEmpty(configSection.AccountId)
+                    ? string.Format(",\"account_id\": \"{0}\"", configSection.AccountId) : string.Empty;
+                string scope = !string.IsNullOrEmpty(configSection.Scope)
+                    ? string.Format(",\"scope\": \"{0}\"", configSection.Scope) : string.Empty;
+                json += accountId + scope + "}";
                 streamWriter.Write(json);
             }
 
