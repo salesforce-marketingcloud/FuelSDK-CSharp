@@ -346,13 +346,16 @@ namespace FuelSDK
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
-                string json = string.Format("{{\"client_id\": \"{0}\", \"client_secret\": \"{1}\", \"grant_type\": \"client_credentials\"", configSection.ClientId, configSection.ClientSecret);
-                string accountId = !string.IsNullOrEmpty(configSection.AccountId)
-                    ? string.Format(",\"account_id\": \"{0}\"", configSection.AccountId) : string.Empty;
-                string scope = !string.IsNullOrEmpty(configSection.Scope)
-                    ? string.Format(",\"scope\": \"{0}\"", configSection.Scope) : string.Empty;
-                json += accountId + scope + "}";
-                streamWriter.Write(json);
+                dynamic payload = new JObject();
+                payload.client_id = configSection.ClientId;
+                payload.client_secret = configSection.ClientSecret;
+                payload.grant_type = "client_credentials";
+                if (!string.IsNullOrEmpty(configSection.AccountId))
+                    payload.account_id = configSection.AccountId;
+                if (!string.IsNullOrEmpty(configSection.Scope))
+                    payload.scope = configSection.Scope;
+
+                streamWriter.Write(payload.ToString());
             }
 
             // Get the response
