@@ -61,8 +61,8 @@ For OAuth2 authentication [More Details][here](https://developer.salesforce.com/
     authEndPoint="YOUR_AUTH_TSE"
     restEndPoint="YOUR_REST_TSE"
     useOAuth2Authentication="true" 
-	accountId="<TARGET_ACCOUNT_ID>"
-	scope="<DATA-ACCESS-PERMISSIONS>"/>
+    accountId="TARGET_ACCOUNT_ID"
+    scope="DATA_ACCESS_PERMISSIONS" />
 </configuration>
 ```
 
