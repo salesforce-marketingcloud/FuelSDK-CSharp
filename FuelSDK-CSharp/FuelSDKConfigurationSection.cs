@@ -78,6 +78,28 @@ namespace FuelSDK
             get { return (string)this["useOAuth2Authentication"]; }
             set { this["useOAuth2Authentication"] = value; }
 	    }
+
+	    /// <summary>
+	    /// Gets or sets the Account Id.
+	    /// </summary>
+	    /// <value>Authenticaton Mode</value>
+        [ConfigurationProperty("accountId", DefaultValue = "")]
+	    public string AccountId
+	    {
+	        get { return (string)this["accountId"]; }
+            set { this["accountId"] = value; }
+	    }
+	    /// <summary>
+	    /// Gets or sets the Authenticaton Mode.
+	    /// </summary>
+	    /// <value>Authenticaton Mode</value>
+	    [ConfigurationProperty("scope", DefaultValue = "")]
+	    public string Scope
+	    {
+            get { return (string)this["scope"]; }
+            set { this["scope"] = value; }
+	    }
+
         /// <summary>
         /// Clone this instance.
         /// </summary>

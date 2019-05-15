@@ -20,7 +20,7 @@ namespace FuelSDK
     /// </summary>
     public class ETClient
     {
-        public const string SDKVersion = "FuelSDK-C#-v1.2.0";
+        public const string SDKVersion = "FuelSDK-C#-v1.2.1";
 
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
@@ -101,6 +101,14 @@ namespace FuelSDK
                 if (parameters.AllKeys.Contains("useOAuth2Authentication"))
                 {
                     configSection.UseOAuth2Authentication = parameters["useOAuth2Authentication"];
+                }
+                if (parameters.AllKeys.Contains("accountId"))
+                {
+                    configSection.AccountId = parameters["accountId"];
+                }
+                if (parameters.AllKeys.Contains("scope"))
+                {
+                    configSection.Scope = parameters["scope"];
                 }
             }
             if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
@@ -338,8 +346,16 @@ namespace FuelSDK
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
-                string json = string.Format("{{\"client_id\": \"{0}\", \"client_secret\": \"{1}\", \"grant_type\": \"client_credentials\"}}", configSection.ClientId, configSection.ClientSecret);
-                streamWriter.Write(json);
+                dynamic payload = new JObject();
+                payload.client_id = configSection.ClientId;
+                payload.client_secret = configSection.ClientSecret;
+                payload.grant_type = "client_credentials";
+                if (!string.IsNullOrEmpty(configSection.AccountId))
+                    payload.account_id = configSection.AccountId;
+                if (!string.IsNullOrEmpty(configSection.Scope))
+                    payload.scope = configSection.Scope;
+
+                streamWriter.Write(payload.ToString());
             }
 
             // Get the response

@@ -47,7 +47,7 @@ For Legacy authentication, use the below example for `App.config`
 </configuration>
 ```
 
-For OAuth2 authentication, use the below example for `App.config`
+For OAuth2 authentication [More Details][here](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm)., use the below example for `App.config`
 ```
 <?xml version="1.0"?>
 <configuration>
@@ -60,7 +60,9 @@ For OAuth2 authentication, use the below example for `App.config`
     clientSecret="YOUR_CLIENT_SECRET"
     authEndPoint="YOUR_AUTH_TSE"
     restEndPoint="YOUR_REST_TSE"
-    useOAuth2Authentication="true" />
+    useOAuth2Authentication="true" 
+    accountId="TARGET_ACCOUNT_ID"
+    scope="DATA_ACCESS_PERMISSIONS" />
 </configuration>
 ```
 
