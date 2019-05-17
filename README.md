@@ -47,7 +47,9 @@ For Legacy authentication, use the below example for `App.config`
 </configuration>
 ```
 
-For OAuth2 authentication [More Details][here](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm)., use the below example for `App.config`
+For OAuth2 authentication [More Details](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm), 
+
+use the below example for `App.config`
 ```
 <?xml version="1.0"?>
 <configuration>
@@ -59,11 +61,27 @@ For OAuth2 authentication [More Details][here](https://developer.salesforce.com/
     clientId="YOUR_CLIENT_ID"
     clientSecret="YOUR_CLIENT_SECRET"
     authEndPoint="YOUR_AUTH_TSE"
+    soapEndPoint="YOUR_SOAP_TSE"
     restEndPoint="YOUR_REST_TSE"
     useOAuth2Authentication="true" 
     accountId="TARGET_ACCOUNT_ID"
     scope="DATA_ACCESS_PERMISSIONS" />
 </configuration>
+```
+
+you can also pass the OAuth2 options as (NameValueCollection) Parameters to the ETClient Class,
+```
+NameValueCollection params = new NameValueCollection();
+params.add("clientId", "YOUR_CLIENT_ID");
+params.add("clientSecret", "YOUR_CLIENT_SECRET");
+params.add("authEndPoint", "YOUR_AUTH_TSE");
+params.add("soapEndPoint", "YOUR_SOAP_TSE");
+params.add("restEndPoint", "YOUR_REST_TSE");
+params.add("useOAuth2Authentication", "true");
+params.add("accountId", "TARGET_ACCOUNT_ID");
+params.add("scope", "DATA_ACCESS_PERMISSIONS");
+
+ETClient client = new ETClient(params);
 ```
 
 More details and a comparison between legacy and enhanced packages can be found [here](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/installed-package-types.htm#).
