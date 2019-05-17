@@ -47,7 +47,7 @@ For Legacy authentication, use the below example for `App.config`
 </configuration>
 ```
 
-For OAuth2 authentication, [More Details](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm), use the below example for `App.config`
+For OAuth2 authentication [More Details](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm), use the below example for `App.config`
 ```
 <?xml version="1.0"?>
 <configuration>
