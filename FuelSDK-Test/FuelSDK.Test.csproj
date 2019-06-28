@@ -61,6 +61,7 @@
     <Compile Include="ETTriggeredSendDefinitionTest.cs" />
     <Compile Include="ETUnsubEventTest.cs" />
     <Compile Include="FuelSDKConfigurationSectionTest.cs" />
+    <Compile Include="RefreshTokenTest.cs" />
     <Compile Include="StackKeyTest.cs" />
   </ItemGroup>
   <ItemGroup>

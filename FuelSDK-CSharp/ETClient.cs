@@ -110,9 +110,40 @@ namespace FuelSDK
                 {
                     configSection.Scope = parameters["scope"];
                 }
+                if (parameters.AllKeys.Contains("applicationType"))
+                {
+                    configSection.ApplicationType = parameters["applicationType"];
+                }
+                if (parameters.AllKeys.Contains("authorizationCode"))
+                {
+                    configSection.AuthorizationCode = parameters["authorizationCode"];
+                }
+                 if (parameters.AllKeys.Contains("redirectURI"))
+                {
+                    configSection.RedirectURI = parameters["redirectURI"];
+                }
             }
-            if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
-                throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
+            
+            if (!configSection.ApplicationType.Equals("server"))
+            {
+                if (string.IsNullOrEmpty(configSection.AuthorizationCode) || string.IsNullOrEmpty(configSection.RedirectURI))
+                {
+                    throw new Exception("AuthorizationCode or RedirectURI is null: For Public/Web Apps, AuthCode and Redirect URI must be provided in config file or passed when instantiating ETClient");
+                }
+            }
+
+            if (configSection.ApplicationType.Equals("public"))
+            {
+                if(string.IsNullOrEmpty(configSection.ClientId))
+                    throw new Exception("clientId is null: Must be provided in config file or passed when instantiating ETClient");
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
+                {
+                    throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
+                }
+            }            
 
             // If JWT URL Parameter Used
             var organizationFind = false;
@@ -330,7 +361,7 @@ namespace FuelSDK
             RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
         }
 
-        private void RefreshTokenWithOauth2(bool force = false)
+        public void RefreshTokenWithOauth2(bool force = false)
         {
             // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
@@ -348,12 +379,30 @@ namespace FuelSDK
             {
                 dynamic payload = new JObject();
                 payload.client_id = configSection.ClientId;
-                payload.client_secret = configSection.ClientSecret;
-                payload.grant_type = "client_credentials";
+
+                if (!configSection.ApplicationType.Equals("public"))
+                    payload.client_secret = configSection.ClientSecret;
+                
+                if (!string.IsNullOrEmpty(RefreshKey))
+                {
+                    payload.grant_type = "refresh_token";
+                    payload.refresh_token = RefreshKey;
+                }
+                else if (!configSection.ApplicationType.Equals("server")){
+                    payload.grant_type = "authorization_code";
+
+                    if (!string.IsNullOrEmpty(configSection.AuthorizationCode))
+                        payload.code = configSection.AuthorizationCode;
+                } 
+                else
+                    payload.grant_type = "client_credentials";
+
                 if (!string.IsNullOrEmpty(configSection.AccountId))
                     payload.account_id = configSection.AccountId;
                 if (!string.IsNullOrEmpty(configSection.Scope))
-                    payload.scope = configSection.Scope;
+                    payload.scope = configSection.Scope;             
+                if (!string.IsNullOrEmpty(configSection.RedirectURI))
+                    payload.redirect_uri = configSection.RedirectURI;
 
                 streamWriter.Write(payload.ToString());
             }
@@ -372,6 +421,8 @@ namespace FuelSDK
             AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expires_in"].Value<string>().Trim()));
             configSection.SoapEndPoint = parsedResponse["soap_instance_url"].Value<string>().Trim() + "service.asmx";
             configSection.RestEndPoint = parsedResponse["rest_instance_url"].Value<string>().Trim();
+            if (parsedResponse["refresh_token"] != null)
+                RefreshKey = parsedResponse["refresh_token"].Value<string>().Trim();
         }
 
         public FuelReturn AddSubscribersToList(string emailAddress, string subscriberKey, IEnumerable<int> listIDs) { return ProcessAddSubscriberToList(emailAddress, subscriberKey, listIDs); }
