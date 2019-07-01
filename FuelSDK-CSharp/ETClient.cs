@@ -123,8 +123,10 @@ namespace FuelSDK
                     configSection.RedirectURI = parameters["redirectURI"];
                 }
             }
-            
-            if (!configSection.ApplicationType.Equals("server"))
+
+            configSection.ApplicationType = string.IsNullOrEmpty(configSection.ApplicationType) ? "server" : configSection.ApplicationType;
+
+            if (configSection.ApplicationType.Equals("public") || configSection.ApplicationType.Equals("web"))
             {
                 if (string.IsNullOrEmpty(configSection.AuthorizationCode) || string.IsNullOrEmpty(configSection.RedirectURI))
                 {
@@ -361,6 +363,39 @@ namespace FuelSDK
             RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
         }
 
+        internal dynamic CreatePayload(FuelSDKConfigurationSection config)
+        {
+            dynamic payload = new JObject();
+
+            payload.client_id = config.ClientId;
+
+            if (!config.ApplicationType.Equals("public"))
+                payload.client_secret = config.ClientSecret;
+
+            if (!string.IsNullOrEmpty(RefreshKey))
+            {
+                payload.grant_type = "refresh_token";
+                payload.refresh_token = RefreshKey;
+            }
+            else if (!config.ApplicationType.Equals("server"))
+            {
+                payload.grant_type = "authorization_code";
+
+                if (!string.IsNullOrEmpty(config.AuthorizationCode))
+                    payload.code = config.AuthorizationCode;
+            }
+            else
+                payload.grant_type = "client_credentials";
+
+            if (!string.IsNullOrEmpty(config.AccountId))
+                payload.account_id = config.AccountId;
+            if (!string.IsNullOrEmpty(config.Scope))
+                payload.scope = config.Scope;
+            if (!string.IsNullOrEmpty(config.RedirectURI))
+                payload.redirect_uri = config.RedirectURI;
+
+            return payload;
+        }
         public void RefreshTokenWithOauth2(bool force = false)
         {
             // workaround to support TLS 1.2 in .NET 4.0
@@ -377,33 +412,7 @@ namespace FuelSDK
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
-                dynamic payload = new JObject();
-                payload.client_id = configSection.ClientId;
-
-                if (!configSection.ApplicationType.Equals("public"))
-                    payload.client_secret = configSection.ClientSecret;
-                
-                if (!string.IsNullOrEmpty(RefreshKey))
-                {
-                    payload.grant_type = "refresh_token";
-                    payload.refresh_token = RefreshKey;
-                }
-                else if (!configSection.ApplicationType.Equals("server")){
-                    payload.grant_type = "authorization_code";
-
-                    if (!string.IsNullOrEmpty(configSection.AuthorizationCode))
-                        payload.code = configSection.AuthorizationCode;
-                } 
-                else
-                    payload.grant_type = "client_credentials";
-
-                if (!string.IsNullOrEmpty(configSection.AccountId))
-                    payload.account_id = configSection.AccountId;
-                if (!string.IsNullOrEmpty(configSection.Scope))
-                    payload.scope = configSection.Scope;             
-                if (!string.IsNullOrEmpty(configSection.RedirectURI))
-                    payload.redirect_uri = configSection.RedirectURI;
-
+                dynamic payload = CreatePayload(configSection);
                 streamWriter.Write(payload.ToString());
             }
 
