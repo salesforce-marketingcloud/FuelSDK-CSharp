@@ -18,7 +18,7 @@ namespace FuelSDK.Test
         }
 
         [Test()]
-        public void Oauth2RefreshToken()
+        public void AuthTokenShouldDifferIfRefreshTokenIsEnforced()
         {
             var token = client.AuthToken;
             var refreshToken = client.RefreshKey;
@@ -27,8 +27,8 @@ namespace FuelSDK.Test
             var refreshToken1 = client.RefreshKey;
 
 
-            Assert.AreNotEqual(token, token1, "Tokens should differ as call is made with Refresh Token Enabled");
-            Assert.AreNotEqual(refreshToken, refreshToken1, "Refresh Tokens should differ as call is made with Refresh Token Enabled");
+            Assert.AreNotEqual(token, token1);
+            Assert.AreNotEqual(refreshToken, refreshToken1);
 
         }
     }
