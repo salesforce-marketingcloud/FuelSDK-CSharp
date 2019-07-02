@@ -3,6 +3,7 @@ using System;
 using FuelSDK;
 using Newtonsoft.Json.Linq;
 using System.Reflection;
+using System.Collections.Specialized;
 
 namespace FuelSDK.Test
 {
@@ -29,7 +30,18 @@ namespace FuelSDK.Test
 
             Assert.AreNotEqual(token, token1);
             Assert.AreNotEqual(refreshToken, refreshToken1);
+        }
 
+        [Test()]
+        public void AuthPayloadShouldHavePublicWebAppAttributes()
+        {
+            FuelSDKConfigurationSection config = new FuelSDKConfigurationSection();
+            config.AuthorizationCode = "Auth_Code_For_OAuth2_WebApp";
+            config.RedirectURI = "www.google.com";
+            dynamic payload = client.CreatePayload(config);
+
+            Assert.AreEqual(payload.redirect_uri.ToString(), config.RedirectURI);
+            Assert.AreEqual(payload.code.ToString(), config.AuthorizationCode);
         }
     }
 }
