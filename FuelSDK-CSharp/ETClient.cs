@@ -26,7 +26,7 @@ namespace FuelSDK
         public string AuthToken { get; private set; }
         public SoapClient SoapClient { get; private set; }
         public string InternalAuthToken { get; private set; }
-        public string RefreshKey { get; private set; }
+        public string RefreshKey { get; internal set; }
         public DateTime AuthTokenExpiration { get; private set; }
         public JObject Jwt { get; private set; }
         public string EnterpriseId { get; private set; }
@@ -383,6 +383,8 @@ namespace FuelSDK
 
                 if (!string.IsNullOrEmpty(config.AuthorizationCode))
                     payload.code = config.AuthorizationCode;
+                if (!string.IsNullOrEmpty(config.RedirectURI))
+                    payload.redirect_uri = config.RedirectURI;
             }
             else
                 payload.grant_type = "client_credentials";
@@ -391,8 +393,6 @@ namespace FuelSDK
                 payload.account_id = config.AccountId;
             if (!string.IsNullOrEmpty(config.Scope))
                 payload.scope = config.Scope;
-            if (!string.IsNullOrEmpty(config.RedirectURI))
-                payload.redirect_uri = config.RedirectURI;
 
             return payload;
         }
