@@ -62,6 +62,7 @@ For OAuth2 authentication [More Details][here](https://developer.salesforce.com/
     restEndPoint="YOUR_REST_TSE"
     useOAuth2Authentication="true" 
     applicationType="server"||"public"||"web" //if you are using oauth2 for public or web app. By default, this will be "server" 
+    authorizationCode="AUTHORIZATION_CODE"
     redirectURI="REDIRECT_URI_FOR_PUBLIC/WEB_APP"
     accountId="TARGET_ACCOUNT_ID"
     scope="DATA_ACCESS_PERMISSIONS" />

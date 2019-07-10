@@ -380,11 +380,8 @@ namespace FuelSDK
             else if (!config.ApplicationType.Equals("server"))
             {
                 payload.grant_type = "authorization_code";
-
-                if (!string.IsNullOrEmpty(config.AuthorizationCode))
-                    payload.code = config.AuthorizationCode;
-                if (!string.IsNullOrEmpty(config.RedirectURI))
-                    payload.redirect_uri = config.RedirectURI;
+                payload.code = config.AuthorizationCode;
+                payload.redirect_uri = config.RedirectURI;
             }
             else
                 payload.grant_type = "client_credentials";
