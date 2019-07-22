@@ -7,6 +7,9 @@ using System.Collections.Specialized;
 
 namespace FuelSDK.Test
 {
+    /// <summary>
+    /// These tests are specific for OAuth2 Public/Web Apps, So Config should be modified accordingly.
+    /// </summary>
     [TestFixture()]
     public class RefreshTokenTest
     {
@@ -26,7 +29,7 @@ namespace FuelSDK.Test
         }
 
         [Test()]
-        public void AuthTokenShouldDifferIfRefreshTokenIsEnforced()
+        public void AuthTokenAndRefreshTokenShouldDifferIfRefreshTokenIsEnforced()
         {
             var token = client.AuthToken;
             var refreshToken = client.RefreshKey;
