@@ -20,7 +20,7 @@ namespace FuelSDK
     /// </summary>
     public class ETClient
     {
-        public const string SDKVersion = "FuelSDK-C#-v1.2.1";
+        public const string SDKVersion = "FuelSDK-C#-v1.3.0";
 
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
