@@ -20,13 +20,13 @@ namespace FuelSDK
     /// </summary>
     public class ETClient
     {
-        public const string SDKVersion = "FuelSDK-C#-v1.2.1";
+        public const string SDKVersion = "FuelSDK-C#-v1.3.0";
 
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
         public SoapClient SoapClient { get; private set; }
         public string InternalAuthToken { get; private set; }
-        public string RefreshKey { get; private set; }
+        public string RefreshKey { get; internal set; }
         public DateTime AuthTokenExpiration { get; private set; }
         public JObject Jwt { get; private set; }
         public string EnterpriseId { get; private set; }
@@ -110,9 +110,42 @@ namespace FuelSDK
                 {
                     configSection.Scope = parameters["scope"];
                 }
+                if (parameters.AllKeys.Contains("applicationType"))
+                {
+                    configSection.ApplicationType = parameters["applicationType"];
+                }
+                if (parameters.AllKeys.Contains("authorizationCode"))
+                {
+                    configSection.AuthorizationCode = parameters["authorizationCode"];
+                }
+                 if (parameters.AllKeys.Contains("redirectURI"))
+                {
+                    configSection.RedirectURI = parameters["redirectURI"];
+                }
             }
-            if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
-                throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
+
+            configSection.ApplicationType = string.IsNullOrEmpty(configSection.ApplicationType) ? "server" : configSection.ApplicationType;
+
+            if (configSection.ApplicationType.Equals("public") || configSection.ApplicationType.Equals("web"))
+            {
+                if (string.IsNullOrEmpty(configSection.AuthorizationCode) || string.IsNullOrEmpty(configSection.RedirectURI))
+                {
+                    throw new Exception("AuthorizationCode or RedirectURI is null: For Public/Web Apps, AuthCode and Redirect URI must be provided in config file or passed when instantiating ETClient");
+                }
+            }
+
+            if (configSection.ApplicationType.Equals("public"))
+            {
+                if(string.IsNullOrEmpty(configSection.ClientId))
+                    throw new Exception("clientId is null: Must be provided in config file or passed when instantiating ETClient");
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(configSection.ClientId) || string.IsNullOrEmpty(configSection.ClientSecret))
+                {
+                    throw new Exception("clientId or clientSecret is null: Must be provided in config file or passed when instantiating ETClient");
+                }
+            }            
 
             // If JWT URL Parameter Used
             var organizationFind = false;
@@ -330,7 +363,38 @@ namespace FuelSDK
             RefreshKey = parsedResponse["refreshToken"].Value<string>().Trim();
         }
 
-        private void RefreshTokenWithOauth2(bool force = false)
+        internal dynamic CreatePayload(FuelSDKConfigurationSection config)
+        {
+            dynamic payload = new JObject();
+
+            payload.client_id = config.ClientId;
+
+            if (!config.ApplicationType.Equals("public"))
+                payload.client_secret = config.ClientSecret;
+
+            if (!string.IsNullOrEmpty(RefreshKey))
+            {
+                payload.grant_type = "refresh_token";
+                payload.refresh_token = RefreshKey;
+            }
+            else if (!config.ApplicationType.Equals("server"))
+            {
+                payload.grant_type = "authorization_code";
+                payload.code = config.AuthorizationCode;
+                payload.redirect_uri = config.RedirectURI;
+            }
+            else
+                payload.grant_type = "client_credentials";
+
+            if (!string.IsNullOrEmpty(config.AccountId))
+                payload.account_id = config.AccountId;
+            if (!string.IsNullOrEmpty(config.Scope))
+                payload.scope = config.Scope;
+
+            return payload;
+        }
+
+        internal void RefreshTokenWithOauth2(bool force = false)
         {
             // workaround to support TLS 1.2 in .NET 4.0
             ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
@@ -346,15 +410,7 @@ namespace FuelSDK
 
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
-                dynamic payload = new JObject();
-                payload.client_id = configSection.ClientId;
-                payload.client_secret = configSection.ClientSecret;
-                payload.grant_type = "client_credentials";
-                if (!string.IsNullOrEmpty(configSection.AccountId))
-                    payload.account_id = configSection.AccountId;
-                if (!string.IsNullOrEmpty(configSection.Scope))
-                    payload.scope = configSection.Scope;
-
+                dynamic payload = CreatePayload(configSection);
                 streamWriter.Write(payload.ToString());
             }
 
@@ -372,6 +428,8 @@ namespace FuelSDK
             AuthTokenExpiration = DateTime.Now.AddSeconds(int.Parse(parsedResponse["expires_in"].Value<string>().Trim()));
             configSection.SoapEndPoint = parsedResponse["soap_instance_url"].Value<string>().Trim() + "service.asmx";
             configSection.RestEndPoint = parsedResponse["rest_instance_url"].Value<string>().Trim();
+            if (parsedResponse["refresh_token"] != null)
+                RefreshKey = parsedResponse["refresh_token"].Value<string>().Trim();
         }
 
         public FuelReturn AddSubscribersToList(string emailAddress, string subscriberKey, IEnumerable<int> listIDs) { return ProcessAddSubscriberToList(emailAddress, subscriberKey, listIDs); }

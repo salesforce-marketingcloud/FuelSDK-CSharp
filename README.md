@@ -47,7 +47,7 @@ For Legacy authentication, use the below example for `App.config`
 </configuration>
 ```
 
-For OAuth2 authentication [More Details][here](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm)., use the below example for `App.config`
+For OAuth2 authentication, use the below example for `App.config`(More details can be found [here](https://developer.salesforce.com/docs/atlas.en-us.mc-app-development.meta/mc-app-development/access-token-s2s.htm))
 ```
 <?xml version="1.0"?>
 <configuration>
@@ -61,6 +61,9 @@ For OAuth2 authentication [More Details][here](https://developer.salesforce.com/
     authEndPoint="YOUR_AUTH_TSE"
     restEndPoint="YOUR_REST_TSE"
     useOAuth2Authentication="true" 
+    applicationType="server"||"public"||"web" //if you are using oauth2 for public or web app. By default, this will be "server" 
+    authorizationCode="AUTHORIZATION_CODE"
+    redirectURI="REDIRECT_URI_FOR_PUBLIC/WEB_APP"
     accountId="TARGET_ACCOUNT_ID"
     scope="DATA_ACCESS_PERMISSIONS" />
 </configuration>

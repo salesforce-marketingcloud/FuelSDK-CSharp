@@ -24,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
@@ -61,6 +62,7 @@
     <Compile Include="ETTriggeredSendDefinitionTest.cs" />
     <Compile Include="ETUnsubEventTest.cs" />
     <Compile Include="FuelSDKConfigurationSectionTest.cs" />
+    <Compile Include="RefreshTokenTest.cs" />
     <Compile Include="StackKeyTest.cs" />
   </ItemGroup>
   <ItemGroup>

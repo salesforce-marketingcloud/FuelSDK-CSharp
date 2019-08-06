@@ -32,7 +32,7 @@ namespace FuelSDK
         /// Gets or sets the client secret.
         /// </summary>
         /// <value>The client secret.</value>
-		[ConfigurationProperty("clientSecret", IsRequired = true)]
+		[ConfigurationProperty("clientSecret")]
 		public string ClientSecret
 		{
 			get { return (string)this["clientSecret"]; }
@@ -99,6 +99,40 @@ namespace FuelSDK
             get { return (string)this["scope"]; }
             set { this["scope"] = value; }
 	    }
+
+        /// <summary>
+        /// Gets or sets the Application Type.
+        /// </summary>
+        /// <value>Application Type</value>
+        [ConfigurationProperty("applicationType", DefaultValue = "server")]
+        public string ApplicationType
+        {
+            get { return (string)this["applicationType"]; }
+            set { this["applicationType"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the Authorization Code.
+        /// </summary>
+        /// <value>Authorization Code</value>
+        [ConfigurationProperty("authorizationCode", DefaultValue = "")]
+        public string AuthorizationCode
+        {
+            get { return (string)this["authorizationCode"]; }
+            set { this["authorizationCode"] = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the Redirect URL.
+        /// </summary>
+        /// <value>Authorization Code</value>
+        [ConfigurationProperty("redirectURI", DefaultValue = "")]
+        public string RedirectURI
+        {
+            get { return (string)this["redirectURI"]; }
+            set { this["redirectURI"] = value; }
+        }
+
 
         /// <summary>
         /// Clone this instance.
