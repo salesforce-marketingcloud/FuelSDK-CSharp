@@ -72,7 +72,7 @@ namespace objsamples
                 {
                     AuthStub = myclient,
                     Props = new[] { "Name", "FieldType" },
-                    SearchFilter = new SimpleFilterPart { Property = "DataExtension.CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new[] { nameOfTestDataExtension } },
+                    SearchFilter = new SimpleFilterPart { Property = "DataExtensionField.DataExtension.CustomerKey", SimpleOperator = SimpleOperators.equals, Value = new[] { nameOfTestDataExtension } },
                 };
                 var getColumnResponse = getColumn.Get();
                 Console.WriteLine("Get Status: " + getColumnResponse.Status.ToString());
