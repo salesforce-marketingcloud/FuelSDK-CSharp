@@ -25,6 +25,11 @@ namespace FuelSDK
         private FuelSDKConfigurationSection configSection;
         public string AuthToken { get; private set; }
         public SoapClient SoapClient { get; private set; }
+        
+        private TimeSpan soapBindingCloseTimeout = new TimeSpan(0, 50, 0);
+        private TimeSpan soapBindingOpenTimeout = new TimeSpan(0, 50, 0);
+        private TimeSpan soapBindingReceiveTimeout = new TimeSpan(0, 50, 0);
+        private TimeSpan soapBindingSendTimeout = new TimeSpan(0, 50, 0);
         public string InternalAuthToken { get; private set; }
         public string RefreshKey { get; internal set; }
         public DateTime AuthTokenExpiration { get; private set; }
@@ -90,10 +95,15 @@ namespace FuelSDK
                     configSection.ClientSecret = parameters["clientSecret"];
                 if (parameters.AllKeys.Contains("soapEndPoint"))
                     configSection.SoapEndPoint = parameters["soapEndPoint"];
-                if (parameters.AllKeys.Contains("authEndPoint"))
-                {
-                    configSection.AuthenticationEndPoint = parameters["authEndPoint"];
-                }
+                if (parameters.AllKeys.Contains("soapBindingCloseTimeout"))
+                    configSection.SoapBindingCloseTimeout = parameters["soapBindingCloseTimeout"];
+                if (parameters.AllKeys.Contains("soapBindingOpenTimeout"))
+                    configSection.SoapBindingOpenTimeout = parameters["soapBindingOpenTimeout"];
+                if (parameters.AllKeys.Contains("soapBindingReceiveTimeout"))
+                    configSection.SoapBindingReceiveTimeout = parameters["soapBindingReceiveTimeout"];
+                if (parameters.AllKeys.Contains("soapBindingSendTimeout"))
+                    configSection.SoapBindingSendTimeout = parameters["soapBindingSendTimeout"];
+
                 if (parameters.AllKeys.Contains("restEndPoint"))
                 {
                     configSection.RestEndPoint = parameters["restEndPoint"];
@@ -118,7 +128,7 @@ namespace FuelSDK
                 {
                     configSection.AuthorizationCode = parameters["authorizationCode"];
                 }
-                 if (parameters.AllKeys.Contains("redirectURI"))
+                if (parameters.AllKeys.Contains("redirectURI"))
                 {
                     configSection.RedirectURI = parameters["redirectURI"];
                 }
@@ -308,10 +318,10 @@ namespace FuelSDK
             {
                 Name = "UserNameSoapBinding",
                 Namespace = "Core.Soap",
-                CloseTimeout = new TimeSpan(0, 50, 0),
-                OpenTimeout = new TimeSpan(0, 50, 0),
-                ReceiveTimeout = new TimeSpan(0, 50, 0),
-                SendTimeout = new TimeSpan(0, 50, 0)
+                CloseTimeout =  soapBindingCloseTimeout,
+                OpenTimeout = soapBindingOpenTimeout,
+                ReceiveTimeout = soapBindingReceiveTimeout,
+                SendTimeout = soapBindingSendTimeout
             };
         }
 

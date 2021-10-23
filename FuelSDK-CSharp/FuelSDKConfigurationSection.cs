@@ -49,6 +49,46 @@ namespace FuelSDK
 			set { this["soapEndPoint"] = value; }
 		}
         /// <summary>
+        /// Gets or sets the SOAP BindingCloseTimeout.
+        /// </summary>
+        /// <value>The SOAP end point.</value>
+        [ConfigurationProperty("soapBindingCloseTimeout")]
+        public string SoapBindingCloseTimeout
+        {
+	        get { return (string)this["soapBindingCloseTimeout"]; }
+	        set { this["soapBindingCloseTimeout"] = value; }
+        }
+        /// <summary>
+        /// Gets or sets the SOAP BindingOpenTimeout.
+        /// </summary>
+        /// <value>The SOAP end point.</value>
+        [ConfigurationProperty("soapBindingOpenTimeout")]
+        public string SoapBindingOpenTimeout
+        {
+	        get { return (string)this["soapBindingOpenTimeout"]; }
+	        set { this["soapBindingOpenTimeout"] = value; }
+        }
+        /// <summary>
+        /// Gets or sets the SOAP BindingReceiveTimeout.
+        /// </summary>
+        /// <value>The SOAP end point.</value>
+        [ConfigurationProperty("soapBindingReceiveTimeout")]
+        public string SoapBindingReceiveTimeout
+        {
+	        get { return (string)this["soapBindingReceiveTimeout"]; }
+	        set { this["soapBindingReceiveTimeout"] = value; }
+        }
+        /// <summary>
+        /// Gets or sets the SOAP BindingSendTimeout.
+        /// </summary>
+        /// <value>The SOAP end point.</value>
+        [ConfigurationProperty("soapBindingSendTimeout")]
+        public string SoapBindingSendTimeout
+        {
+	        get { return (string)this["soapBindingSendTimeout"]; }
+	        set { this["soapBindingSendTimeout"] = value; }
+        }
+        /// <summary>
         /// Gets or sets the authentification end point.
         /// </summary>
         /// <value>The authentification end point.</value>
