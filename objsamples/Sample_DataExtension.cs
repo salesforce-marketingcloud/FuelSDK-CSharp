@@ -88,7 +88,7 @@ namespace objsamples
                 var deRowPost = new ET_DataExtensionRow
                 {
                     AuthStub = myclient,
-                    DataExtensionCustomerKey = nameOfTestDataExtension,
+                    DataExtensionCustomerKey = keyOfTestDataExtension,
                 };
                 deRowPost.ColumnValues.Add("Name", "Example Name");
                 deRowPost.ColumnValues.Add("OtherColumn", "Different Example Text");
